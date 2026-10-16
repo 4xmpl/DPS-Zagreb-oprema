@@ -887,7 +887,36 @@ async function checklistPdf(name){
   await savePdf("povrat-"+name.replace(/[^A-Za-z0-9čćžšđČĆŽŠĐ]+/g,"-")+".pdf");
 }
 
+let memQ="";
+function memberCard(){
+  const key=personKey(memQ);
+  let h='';
+  if(!key){return '<div class="mu" style="margin-top:8px">Upiši ime pa vidiš što je član posudio, što trenutno drži i koliko duguje.</div>'}
+  const ks=[...new Set(logs.map(x=>personKey(x.name)))],ex=ks.includes(key),m=ks.filter(k=>k.includes(key));
+  if(!ex&&m.length>1){const nm=k=>logs.find(x=>personKey(x.name)===k).name;return '<div class="mu" style="margin:8px 0 4px">Odaberi člana:</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+m.slice(0,12).map(k=>'<button class="b g" style="width:auto;padding:8px 12px" data-mem="'+esc(nm(k))+'">'+esc(nm(k))+'</button>').join("")+'</div>'}
+  const fk=ex?key:(m[0]||key);
+  const all=logs.filter(x=>personKey(x.name)===fk);
+  if(!all.length){return '<div class="mu" style="margin-top:8px">Nema zapisa za to ime.</div>'}
+  const iz=all.filter(x=>x.action==="izdano"),pay=iz.filter(x=>x.kind==="izlet"&&(x.price||0)>0);
+  const tot=pay.reduce((a,x)=>a+(x.price||0),0),pd=pay.filter(x=>x.paid).reduce((a,x)=>a+(x.price||0),0);
+  const trips=new Set(iz.map(x=>x.trip||"–")).size;
+  const dm=all.filter(x=>x.action==="vraćeno"&&(x.dmg||[]).length);
+  const hold=entries().filter(x=>personKey(x.holder)===fk);
+  const p={name:all[0].name,l:all.slice().sort((a,b)=>b.ts-a.ts)};
+  const gs=groupsOf(p).filter(g=>g.action==="izdano");
+  h+='<div style="margin-top:10px"><b>'+esc(all[0].name)+'</b></div>'+
+    '<div class="mu">Izdavanja: <b>'+iz.length+'</b> · izleta/akcija: <b>'+trips+'</b> · zadnje '+new Date(all.reduce((m,x)=>Math.max(m,x.ts),0)).toLocaleDateString("hr")+'</div>'+
+    '<div>Za platiti ukupno: <b>'+fm(tot)+'</b> · plaćeno '+fm(pd)+' · <b class="'+(tot-pd>0?"out":"in")+'">neplaćeno '+fm(tot-pd)+'</b></div>'+
+    (dm.length?'<div class="out">Oštećena oprema pri povratu: '+dm.length+'×</div>':"")+
+    '<h2 style="margin-top:12px">Trenutno kod člana</h2>'+
+    (hold.length?hold.map(x=>'<div class="it"><span class="n">'+esc(x.t)+'</span><span class="mu">od '+new Date(x.since).toLocaleDateString("hr")+(x.trip?' · '+esc(x.trip):"")+'</span></div>').join(""):'<div class="mu">Ništa.</div>')+
+    '<h2 style="margin-top:12px">Povijest posudbi</h2>'+
+    gs.map(g=>'<div class="it" style="display:block"><b>'+g.d+'</b> <span class="mu">'+(g.trip?esc(g.trip):"")+(g.kind?' · '+(g.kind==="eko"?"eko":g.kind==="tecaj"?"tečaj":"izlet"):"")+(g.days?" · "+dayTxt(g.days):"")+'</span>'+(g.price>0?' · <b>'+fm(g.price)+'</b> '+(g.paidp>=g.price?'<span class="in">✓</span>':'<span class="out">neplaćeno</span>'):"")+'<div>'+codesTxt(g)+'</div></div>').join("");
+  return h;
+}
 function renderStats(){
+  const mc=document.getElementById("mem-q");
+  if(mc&&document.activeElement===mc){const m=$("mem-res");if(m)m.innerHTML=memberCard();return}
   const iz=logs.filter(x=>x.action==="izdano"),pk=x=>x.kind==="izlet"&&(x.price||0)>0,sum=a=>a.reduce((s,x)=>s+(x.price||0),0);
   if(!iz.length){$("stat").innerHTML='<div class="card mu">Još nema podataka.</div>';return}
   const rev=iz.filter(pk),tot=sum(rev),pd=sum(rev.filter(x=>x.paid)),ppl=new Set(iz.map(x=>personKey(x.name))).size;
@@ -900,11 +929,14 @@ function renderStats(){
   const U={};iz.forEach(x=>x.codes.forEach(c=>U[c]=(U[c]||0)+1));
   const top=Object.keys(U).map(c=>({c,n:U[c],i:items.find(t=>t.id===c)})).sort((a,b)=>b.n-a.n).slice(0,10);
   $("stat").innerHTML=
+    '<div class="card"><h2>Član</h2><input id="mem-q" list="names" placeholder="Upiši ime i prezime" autocomplete="off" value="'+esc(memQ)+'"><div id="mem-res">'+memberCard()+'</div></div>'+
     '<div class="card"><h2>Ukupno</h2><div>Izdavanja: <b>'+iz.length+'</b> · osoba: <b>'+ppl+'</b></div><div>Prihod od najma: <b>'+fm(tot)+'</b></div><div class="mu">plaćeno '+fm(pd)+' · neplaćeno '+fm(tot-pd)+'</div></div>'+
     '<div class="card"><h2>Po godini</h2>'+years.map(y=>'<div class="it" style="display:block"><b>'+y+'</b> · '+Y[y].n+' izdavanja · prihod '+fm(Y[y].rev)+(Y[y].free?' · besplatnih '+Y[y].free:'')+(SC[y]?' · servis '+fm(SC[y]):'')+bar(Y[y].rev,maxY)+'</div>').join("")+'</div>'+
     '<div class="card"><h2>Po izletu</h2>'+trips.map(t=>'<div class="it" style="display:block"><b>'+esc(t.trip)+'</b> <span class="mu">'+t.ppl.size+' osoba · '+(t.kind==="izlet"?fm(t.rev):"besplatno")+'</span>'+(t.kind==="izlet"?bar(t.rev,maxT):"")+'</div>').join("")+'</div>'+
     '<div class="card"><h2>Najviše posuđivana oprema</h2>'+(top.length?top.map(x=>'<div class="it"><span class="n"><b>'+esc(x.c)+'</b> '+esc(x.i?TN[x.i.type]:"")+'</span><span class="mu">'+x.n+'× posuđeno'+(x.i&&x.i.zu?' · '+x.i.zu+' zarona':'')+'</span></div>').join(""):'<div class="mu">Nema podataka.</div>')+'</div>';
 }
+$("stat").addEventListener("click",e=>{const b=e.target.closest("[data-mem]");if(b){memQ=b.dataset.mem;$("mem-q").value=memQ;$("mem-res").innerHTML=memberCard()}});
+$("stat").addEventListener("input",e=>{if(e.target.id==="mem-q"){memQ=e.target.value;$("mem-res").innerHTML=memberCard()}});
 const _rh=renderHis;renderHis=function(){_rh();renderStats();renderSugg()};
 renderPick();renderLead();renderRets();renderHis();renderInv();renderCj();renderPrice();renderPay();renderPlan();
 
