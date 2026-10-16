@@ -24,7 +24,7 @@
       ov = document.createElement("div");
       ov.style.cssText = "position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px";
       ov.innerHTML = '<form style="width:100%;max-width:340px;background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:22px;text-align:center">' +
-        '<div style="font-size:2.2rem">🤿</div><h1 style="font-size:1.2rem;margin:6px 0 4px">DPS Zagreb – oprema</h1>' +
+        '<img src="logo.png" alt="DPS Zagreb" style="width:220px;max-width:80%;height:auto"><h1 style="font-size:1.1rem;margin:8px 0 4px">Oprema</h1>' +
         '<div class="mu" id="lgm" style="margin-bottom:14px">Upiši PIN za pristup.</div>' +
         '<input id="lgp" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" style="text-align:center;font-size:1.4rem;letter-spacing:.3em">' +
         '<button class="b" id="lgb" style="width:100%;margin-top:12px">Prijava</button></form>';

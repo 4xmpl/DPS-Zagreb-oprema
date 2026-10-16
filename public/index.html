@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DPS Zagreb – oprema</title>
+<link rel="icon" href="favicon.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f4f7fa;--card:#fff;--tx:#12202e;--mu:#5d6f80;--ac:#0a6fa8;--ac2:#e3f1fa;--bd:#d5dee7;--ok:#1d8a4e;--wa:#b86a00;--er:#c0392b}
@@ -65,7 +66,7 @@ body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [d
 </head>
 <body class="simple">
 <main>
-<div class="top"><h1>🤿 DPS Zagreb – oprema</h1><button class="gear" id="gear" aria-label="Postavke">⚙️</button></div>
+<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="logo.png" alt="DPS Zagreb" style="height:30px;width:auto"><span class="mu" style="font-size:.95rem;font-weight:600">oprema</span></h1><button class="gear" id="gear" aria-label="Postavke">⚙️</button></div>
 <div id="setp" class="card hide"><h2>Izgled</h2><div class="seg" id="theme"><button data-th="">Automatski</button><button data-th="light">Svijetlo</button><button data-th="dark">Tamno</button></div>
 <label id="simplew" class="row mu hide" style="margin-top:12px"><input type="checkbox" id="simple" style="width:20px;height:20px;flex:none"> Jednostavan prikaz (kako ga vidi zamjenik)</label><div class="mu" style="margin-top:12px">Verzija: GitHub test 3 (automatska objava)</div></div>
 <div class="ov" id="ov"></div>
@@ -659,6 +660,7 @@ async function makePdf(key,trip){
   await savePdf("posudba-"+name.replace(/[^A-Za-z0-9čćžšđČĆŽŠĐ]+/g,"-")+".pdf");
 }
 async function savePdf(filename){
+  { const bx=$("pdfbox"); bx.insertAdjacentHTML("afterbegin",'<img src="logo.png" style="height:38px;display:block;margin-bottom:10px">'); const im=bx.querySelector("img"); try{await im.decode()}catch(e){} }
   const canvas=await html2canvas($("pdfbox"),{scale:2,backgroundColor:"#ffffff"});
   const pdf=new window.jspdf.jsPDF("p","mm","a4"),W=190,PH=277,sliceH=Math.floor(canvas.width*PH/W);
   for(let off=0;off<canvas.height;off+=sliceH){
