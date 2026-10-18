@@ -1,8 +1,10 @@
 import { getStore } from "@netlify/blobs";
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 
-const COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt"];
-const DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt"]; // zamjenik ne smije pisati
+const COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt", "spare", "fin"];
+const DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt", "spare", "fin"]; // zamjenik ne smije pisati
+const DEPUTY_NO_READ = ["fin"]; // zamjenik ne smije čitati financije
+const DEPUTY_LOG_LOCKED = ["free", "freeWhy", "saved", "dmgFee", "dmgCharged", "dmgTs"]; // samo vlasnik: besplatno i naplata štete
 const DAYS = 120;
 
 function envp(k) {
@@ -75,6 +77,7 @@ async function listCol(col) {
   return out;
 }
 const clean = o => JSON.parse(JSON.stringify(o ?? {}));
+const NOPE = () => json({ error: "Nemaš dopuštenje za ovu radnju." }, 403);
 
 export default async (req, context) => {
   if (req.method === "GET") return json({ app: "dps-oprema", ownerPin: !!envp("OWNER_PIN"), deputyPin: !!envp("DEPUTY_PIN") });
@@ -91,12 +94,18 @@ export default async (req, context) => {
       const { blobs } = await ver().list();
       const v = {}; blobs.forEach(x => (v[x.key] = x.etag)); return json({ v, role });
     }
-    if (b.op === "list") { if (!okCol(b.col)) return json({ error: "col" }, 400); return json({ docs: await listCol(b.col) }); }
+    if (b.op === "list") {
+      if (!okCol(b.col)) return json({ error: "col" }, 400);
+      if (role === "deputy" && DEPUTY_NO_READ.includes(b.col)) return NOPE();
+      return json({ docs: await listCol(b.col) });
+    }
 
     if (["set", "update", "delete", "add"].includes(b.op)) {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
       if (role === "deputy" && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || (b.op === "set" && b.col === "items")))
-        return json({ error: "Nemaš dopuštenje za ovu radnju." }, 403);
+        return NOPE();
+      const body = clean(b.data);
+      if (role === "deputy" && b.col === "log") DEPUTY_LOG_LOCKED.forEach(k => delete body[k]);
       let id = b.id;
       if (b.op === "add") id = Date.now().toString(36) + randomBytes(4).toString("hex");
       if (!okId(id)) return json({ error: "id" }, 400);
@@ -105,11 +114,11 @@ export default async (req, context) => {
       else if (b.op === "update") {
         const cur = await s.get(key, { type: "json" });
         if (cur == null) return json({ error: "Dokument ne postoji." }, 404);
-        await s.setJSON(key, Object.assign({}, cur, clean(b.data)));
+        await s.setJSON(key, Object.assign({}, cur, body));
       } else if (b.op === "set" && b.merge) {
         const cur = (await s.get(key, { type: "json" })) || {};
-        await s.setJSON(key, Object.assign({}, cur, clean(b.data)));
-      } else await s.setJSON(key, clean(b.data));
+        await s.setJSON(key, Object.assign({}, cur, body));
+      } else await s.setJSON(key, body);
       await bump(b.col);
       return json({ ok: true, id });
     }
