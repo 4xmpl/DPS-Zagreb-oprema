@@ -139,7 +139,7 @@ body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [d
 <div class="row" style="margin-bottom:8px"><div style="flex:1"><div class="mu">Oznaka (prefiks šifre)</div><input id="a-pre" maxlength="6" autocapitalize="characters" autocomplete="off"></div><div style="flex:1"><div class="mu">Počni od broja</div><input id="a-start" type="number" min="1" max="999" inputmode="numeric" placeholder="automatski"></div></div>
 <div id="a-ex"></div>
 <input id="a-size" placeholder="Veličina (npr. M, 5 mm) – nije obavezno" style="margin-bottom:8px">
-<label class="row mu" style="margin-bottom:8px"><input type="checkbox" id="a-fin" style="width:20px;height:20px;flex:none"> Plaćeno iz novca kluba (upiši izdatak u financije; cijena nabave vrijedi po komadu)</label>
+<label class="row mu" style="margin-bottom:8px"><input type="checkbox" id="a-fin" style="width:20px;height:20px;flex:none"> Plaćeno iz blagajne (gotovina od posudbi). Ako je nabavu platio klub, ne kvači ovo, samo upiši cijenu i datum nabave.</label>
 <button class="b" id="add" style="width:100%">Dodaj</button>
 <div class="mu" style="margin-top:6px">Servis: upozorenje se pojavi na 90 zarona ili 335 dana, a "treba servis" na 100 zarona ili 365 dana. Šifre se dodjeljuju automatski (npr. RE01, RE02… ili KP01, KP02…); oznaku i početni broj možeš sam promijeniti. Napiši ih flomasterom na opremu. Olova, rukavice, lampe, deco bove, padobran, vreća i kompas se ne vode kao komadi, nego se biraju kod izdavanja.</div></div>
 <div id="inv"></div>
@@ -843,6 +843,7 @@ function renderSpare(){
         '<div class="act">'+(rp>0?'<button class="b g" data-spf="'+esc(x.id)+'">popravljeno</button>':"")+'<input data-spn="'+esc(x.id)+'" placeholder="Napomena (npr. treba novi o-ring)" value="'+esc(x.note||"")+'" style="flex:1;min-width:140px"><button class="b r" data-spd="'+esc(x.id)+'">🗑</button></div></div>';
     }).join(""):'<div class="mu">Još nema unosa. Upiši što imaš (npr. rezervni manometar, o-ring, usnik).</div>')+
     '<div class="row" style="margin-top:10px"><input id="sp-name" placeholder="Naziv dijela" autocomplete="off"><input id="sp-qty" type="number" min="0" value="1" inputmode="numeric" style="width:70px;flex:none"><button class="b" id="sp-add" style="flex:none">Dodaj</button></div>'+
+    '<div class="row" style="margin-top:8px"><input id="sp-buy" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Cijena nabave ukupno € (nije obavezno)"><input id="sp-bd" type="date" value="'+todayIso()+'" style="flex:none;width:150px"></div>'+(isOwner?'<label class="row mu" style="margin-top:6px"><input type="checkbox" id="sp-cash" style="width:20px;height:20px;flex:none"> Plaćeno iz blagajne (upiši izdatak u financije). Bez kvačice = platio klub.</label>':"")+
     '<div class="mu" style="margin-top:6px">Kod inventure prebroji i ažuriraj brojeve. Kod popravka komada odaberi ugrađeni rezervni dio i količina se sama smanji; skinuti dio ide ovdje kao „za servis“.</div></div>';
 }
 $("spare").onclick=async e=>{
@@ -866,9 +867,12 @@ $("spare").onclick=async e=>{
       const name=$("sp-name").value.trim(),q=Math.max(0,parseInt($("sp-qty").value)||0);
       if(!name)return say("Upiši naziv dijela.");
       const ex=spares.find(y=>norm(y.name)===norm(name));
-      if(ex)await db.collection("spare").doc(ex.id).update({ok:(ex.ok||0)+q});
-      else await db.collection("spare").add({name,ok:q,repair:0,note:""});
-      $("sp-name").value="";$("sp-qty").value="1";say("Dodano: "+name+(ex?" (količina uvećana)":"")+".");
+      const amt=Math.max(0,Number($("sp-buy").value)||0),bd=$("sp-bd").value||todayIso(),cash=!!($("sp-cash")&&$("sp-cash").checked);
+      const buys=(ex&&ex.buys||[]).slice();if(amt>0&&!cash)buys.push({date:bd,amt,qty:q});
+      if(ex)await db.collection("spare").doc(ex.id).update(Object.assign({ok:(ex.ok||0)+q},amt>0&&!cash?{buys}:{}));
+      else await db.collection("spare").add(Object.assign({name,ok:q,repair:0,note:""},amt>0&&!cash?{buys}:{}));
+      if(amt>0&&cash)await db.collection("fin").add({type:"expense",cat:"oprema",amount:amt,date:bd,desc:"Nabava: "+name,ts:Date.now()});
+      $("sp-name").value="";$("sp-qty").value="1";$("sp-buy").value="";say("Dodano: "+name+(ex?" (količina uvećana)":"")+".");
     }
   }catch(err){say("Greška ("+((err&&err.code)||"?")+").")}
 };
@@ -1161,6 +1165,12 @@ function finSummary(L,y){
   const fr=logs.filter(x=>x.action==="izdano"&&x.free&&yOf(x.ts)===y);
   return {open:finBalAt(L,a-1),close:finBalAt(L,b),najam:c("najam"),steta:c("šteta"),prihod:c("prihod"),servis:-c("servis"),oprema:-c("oprema"),ostalo:-c("ostalo"),predaja:-c("predaja"),ispravak:c("ispravak"),freeN:fr.length,freeSaved:fr.reduce((x,l)=>x+(l.saved||0),0),startInYear:L.cut>=a};
 }
+function clubBuys(y){
+  const linked=new Set(fins.filter(f=>f.item).map(f=>f.item)),R=[];
+  items.forEach(i=>{if(i.buy>0&&i.bought&&String(i.bought).slice(0,4)==String(y)&&!linked.has(i.id))R.push({date:i.bought,desc:(TN[i.type]||i.type)+" "+i.id+(i.size?" ("+i.size+")":""),amt:i.buy})});
+  spares.forEach(x=>(x.buys||[]).forEach(b=>{if(b.amt>0&&String(b.date).slice(0,4)==String(y))R.push({date:b.date,desc:"Rezervni dio: "+x.name+(b.qty>1?" ("+b.qty+" kom)":""),amt:b.amt})}));
+  return R.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
 function finYears(){
   const ys=new Set([new Date().getFullYear()]);
   fins.forEach(f=>{const t=dayTs(f.date)||f.ts;if(t)ys.add(yOf(t))});
@@ -1175,13 +1185,13 @@ function renderFin(){
   const y=Number(finYear),S=finSummary(L,y);
   let h="";
   if(!L.st||finEditStart){
-    h+='<div class="card"><h2>Početno stanje kuverte</h2><div class="mu" style="margin-bottom:8px">Upiši koliko je novca sada u kuverti. Od tog datuma aplikacija zbraja naplaćeno, štetu, servise i tvoje unose.</div><div class="row"><input id="fin-sa" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Iznos u €" value="'+esc(L.st?L.st.amount:"")+'"><input id="fin-sd" type="date" value="'+esc(L.st&&L.st.date||todayIso())+'"></div><div class="row" style="margin-top:8px"><button class="b" data-fst="1">Spremi</button>'+(L.st?'<button class="b g" data-fstx="1">Odustani</button>':"")+'</div></div>';
+    h+='<div class="card"><h2>Početno stanje blagajne</h2><div class="mu" style="margin-bottom:8px">Upiši koliko je novca sada u blagajni. Od tog datuma aplikacija zbraja naplaćeno, štetu, servise i tvoje unose.</div><div class="row"><input id="fin-sa" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Iznos u €" value="'+esc(L.st?L.st.amount:"")+'"><input id="fin-sd" type="date" value="'+esc(L.st&&L.st.date||todayIso())+'"></div><div class="row" style="margin-top:8px"><button class="b" data-fst="1">Spremi</button>'+(L.st?'<button class="b g" data-fstx="1">Odustani</button>':"")+'</div></div>';
   }
   if(L.st){
     const inc=L.rows.filter(r=>r.amt>0).reduce((a,r)=>a+r.amt,0),exp=L.rows.filter(r=>r.amt<0).reduce((a,r)=>a+r.amt,0);
-    h+='<div class="card"><h2>U kuverti (po aplikaciji)</h2><div style="font-size:1.8rem;font-weight:700">'+fm(bal)+'</div><div class="mu">početno '+fm(Number(L.st.amount)||0)+' ('+esc(hrDate(L.st.date))+') · primljeno '+fm(inc)+' · izdano '+fm(-exp)+'</div>'+(finEditStart?"":'<button class="b g" data-fse="1" style="margin-top:8px;padding:6px 10px;font-size:.85rem">Promijeni početno stanje</button>')+'</div>';
+    h+='<div class="card"><h2>U blagajni (po aplikaciji)</h2><div style="font-size:1.8rem;font-weight:700">'+fm(bal)+'</div><div class="mu">početno '+fm(Number(L.st.amount)||0)+' ('+esc(hrDate(L.st.date))+') · primljeno '+fm(inc)+' · izdano '+fm(-exp)+'</div>'+(finEditStart?"":'<button class="b g" data-fse="1" style="margin-top:8px;padding:6px 10px;font-size:.85rem">Promijeni početno stanje</button>')+'</div>';
     const lc=fins.filter(f=>f.type==="count").sort((a,b)=>(b.ts||0)-(a.ts||0))[0];
-    h+='<div class="card"><h2>Brojanje kuverte</h2><input id="fin-ca" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Stvarno u kuverti (€)"><div class="mu" id="fin-cd" style="margin:6px 0"></div><div class="row" style="flex-wrap:wrap"><button class="b" data-fcn="1">Spremi brojanje</button><button class="b g" data-fcn="2">Spremi i uskladi stanje</button></div>'+(lc?'<div class="mu" style="margin-top:8px">Zadnje brojanje '+esc(hrDate(lc.date))+': '+fm(lc.counted||0)+' · razlika '+sgn2(lc.diff||0)+'</div>':"")+'</div>';
+    h+='<div class="card"><h2>Brojanje blagajne</h2><input id="fin-ca" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Stvarno u blagajni (€)"><div class="mu" id="fin-cd" style="margin:6px 0"></div><div class="row" style="flex-wrap:wrap"><button class="b" data-fcn="1">Spremi brojanje</button><button class="b g" data-fcn="2">Spremi i uskladi stanje</button></div>'+(lc?'<div class="mu" style="margin-top:8px">Zadnje brojanje '+esc(hrDate(lc.date))+': '+fm(lc.counted||0)+' · razlika '+sgn2(lc.diff||0)+'</div>':"")+'</div>';
     const t=finForm.type||"expense",free=items.filter(i=>!i.buy).sort(byCode);
     h+='<div class="card"><h2>Novi unos</h2><select id="fin-t" style="margin-bottom:8px">'+Object.keys(FT).map(k=>'<option value="'+k+'"'+(t===k?" selected":"")+'>'+FT[k]+'</option>').join("")+'</select>'+
       '<div class="row" style="margin-bottom:8px"><input id="fin-a" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Iznos u €" value="'+esc(finForm.amount||"")+'"><input id="fin-d" type="date" value="'+esc(finForm.date||todayIso())+'"></div>'+
@@ -1193,9 +1203,12 @@ function renderFin(){
     if(!S)h+='<div class="mu">Za ovu godinu nema financijskih podataka (stanje se vodi od '+esc(hrDate(L.st.date))+').</div>';
     else h+='<div class="it" style="display:block">Početno stanje: <b>'+fm(S.open)+'</b></div>'+
       '<div class="it" style="display:block"><b class="in">Prihodi</b><div class="mu">najam '+fm(S.najam)+' · šteta '+fm(S.steta)+' · ostalo '+fm(S.prihod)+'</div></div>'+
-      '<div class="it" style="display:block"><b class="sv">Potrošeno</b><div class="mu">servis i popravci '+fm(S.servis)+' · nabava opreme '+fm(S.oprema)+' · ostalo '+fm(S.ostalo)+'</div></div>'+
+      '<div class="it" style="display:block"><b class="sv">Potrošeno</b><div class="mu">servis i popravci '+fm(S.servis)+' · nabava opreme (iz blagajne) '+fm(S.oprema)+' · ostalo '+fm(S.ostalo)+'</div></div>'+
       (S.predaja?'<div class="it" style="display:block">Predano klubu: <b>'+fm(S.predaja)+'</b></div>':"")+(S.ispravak?'<div class="it" style="display:block">Ispravci nakon brojanja: <b>'+sgn2(S.ispravak)+'</b></div>':"")+
       '<div class="it" style="display:block">Stanje na kraju: <b>'+fm(S.close)+'</b></div>'+(S.freeN?'<div class="mu own" style="margin-top:6px">Besplatne posudbe: '+S.freeN+' (vrijednost '+fm(S.freeSaved)+')</div>':"");
+    {const cb=clubBuys(y),ct=cb.reduce((a,r)=>a+r.amt,0);
+      h+='<div class="it" style="display:block;margin-top:8px"><b>Nabava koju je platio klub</b> <span class="mu">(ne ulazi u blagajnu)</span>'+(cb.length?cb.map(r=>'<div class="mu">'+esc(hrDate(r.date))+' · '+esc(r.desc)+' · '+fm(r.amt)+'</div>').join("")+'<div style="margin-top:4px">Ukupno: <b>'+fm(ct)+'</b></div>':'<div class="mu">Nema unosa za ovu godinu. Cijenu i datum upiši na komad ili rezervni dio.</div>')+'</div>';
+      if(S)h+='<div class="it" style="display:block"><b>Ukupno potrošeno na opremu '+y+'.</b><div class="mu">servis i popravci '+fm(S.servis)+' · nabava iz blagajne '+fm(S.oprema)+' · nabava koju je platio klub '+fm(ct)+'</div><div style="margin-top:4px;font-size:1.2rem"><b>'+fm(S.servis+S.oprema+ct)+'</b></div></div>';}
     h+='<button class="b" data-fpdf="1" style="width:100%;margin-top:10px">PDF za skupštinu</button><div class="mu" style="margin-top:6px">U PDF-u su novac i statistika po komadu (regulatori, kompenzatori, odijela), bez imena članova. Podaci se bilježe od uvođenja aplikacije, pa je prva godina nepotpuna.</div></div>';
     const rows=L.rows.slice().reverse().slice(0,60);
     h+='<div class="card"><h2>Promet</h2>'+(rows.length?rows.map(r=>'<div class="it"><span class="n">'+esc(r.desc)+'<br><span class="mu">'+new Date(r.ts).toLocaleDateString("hr")+' · '+esc(r.cat)+'</span></span><span class="amt '+(r.amt>=0?"p":"m")+'">'+sgn2(r.amt)+'</span>'+(r.manual?(finAsk===r.id?'<button class="b r" data-fdel2="'+esc(r.id)+'">Da, obriši</button><button class="b g" data-fno="1">Ne</button>':'<button class="b r" data-fdel="'+esc(r.id)+'">🗑</button>'):"")+'</div>').join("")+(L.rows.length>60?'<div class="mu" style="margin-top:6px">Prikazano zadnjih 60 stavki.</div>':""):'<div class="mu">Još nema prometa nakon početnog stanja.</div>')+'</div>';
@@ -1220,13 +1233,13 @@ $("fin").onclick=async e=>{
     if(t.closest("[data-fse]")){finEditStart=true;renderFin();return}
     if(t.closest("[data-fstx]")){finEditStart=false;renderFin();return}
     if(t.closest("[data-fst]")){
-      const v=$("fin-sa").value,am=Number(v);if(v===""||!(am>=0))return say("Upiši iznos u kuverti.");
+      const v=$("fin-sa").value,am=Number(v);if(v===""||!(am>=0))return say("Upiši iznos u blagajni.");
       await db.collection("fin").doc("start").set({type:"start",amount:am,date:$("fin-sd").value||todayIso(),ts:Date.now()});
       finEditStart=false;say("Početno stanje spremljeno.");return;
     }
     const cn=t.closest("[data-fcn]");
     if(cn){
-      const v=$("fin-ca").value;if(v==="")return say("Upiši koliko je novca u kuverti.");
+      const v=$("fin-ca").value;if(v==="")return say("Upiši koliko je novca u blagajni.");
       const cnt=Number(v)||0,diff=Math.round((cnt-finBal)*100)/100,d=todayIso();
       await db.collection("fin").add({type:"count",counted:cnt,expected:finBal,diff,date:d,ts:Date.now()});
       if(cn.dataset.fcn==="2"&&diff!==0)await db.collection("fin").add({type:"adjust",amount:diff,date:d,desc:"Ispravak nakon brojanja ("+fm(cnt)+")",ts:Date.now()});
@@ -1256,9 +1269,13 @@ async function makeAssemblyPdf(y){
   if(!S)h+='<div style="font-size:13px;margin-top:6px">Za ovu godinu nema financijskih podataka.</div>';
   else h+='<table style="width:100%;border-collapse:collapse;font-size:14px">'+row("Početno stanje"+(S.startInYear?" (na dan "+esc(hrDate(L.st.date))+")":" (1.1.)"),fm(S.open),true)+
     row("Prihod od najma (naplaćeno)",fm(S.najam))+row("Naknada štete",fm(S.steta))+row("Ostali prihodi",fm(S.prihod))+
-    row("Servis i popravci opreme","− "+fm(S.servis))+row("Nabava opreme","− "+fm(S.oprema))+row("Ostali izdaci","− "+fm(S.ostalo))+
+    row("Servis i popravci opreme","− "+fm(S.servis))+row("Nabava opreme (iz blagajne)","− "+fm(S.oprema))+row("Ostali izdaci","− "+fm(S.ostalo))+
     (S.predaja?row("Predano klubu","− "+fm(S.predaja)):"")+(S.ispravak?row("Ispravci nakon brojanja",sgn2(S.ispravak)):"")+
     row("Stanje na kraju",fm(S.close),true)+'</table>'+(S.freeN?'<div style="font-size:13px;margin-top:6px">Besplatno posuđeno (pomoć i sl.): '+S.freeN+' puta, vrijednost '+fm(S.freeSaved)+'.</div>':"");
+  {const cb=clubBuys(y),ct=cb.reduce((a,r)=>a+r.amt,0);
+    h+='<div style="font-weight:700;font-size:15px;margin-top:18px">Nabava opreme koju je platio klub</div>';
+    h+=cb.length?'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:4px">'+cb.map(r=>row(esc(hrDate(r.date))+' · '+esc(r.desc),fm(r.amt))).join("")+row("Ukupno",fm(ct),true)+'</table>':'<div style="font-size:13px;margin-top:6px">Nema unosa za ovu godinu.</div>';
+    if(S)h+='<div style="font-weight:700;font-size:15px;margin-top:18px">Ukupno potrošeno na opremu</div><table style="width:100%;border-collapse:collapse;font-size:14px">'+row("Servis i popravci",fm(S.servis))+row("Nabava iz blagajne",fm(S.oprema))+row("Nabava koju je platio klub",fm(ct))+row("Ukupno",fm(S.servis+S.oprema+ct),true)+'</table>';}
   h+='<div style="font-weight:700;font-size:15px;margin-top:18px">Posudba opreme</div>';
   h+=PT.map(([t,n])=>{
     const o=PS[t],l=Object.keys(o.per).map(c=>Object.assign({c},o.per[c])).sort((a,b)=>b.n-a.n||a.c.localeCompare(b.c));
