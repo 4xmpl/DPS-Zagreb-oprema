@@ -134,8 +134,6 @@ body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [d
 <section id="p-fin" class="hide"><div id="fin"></div></section>
 
 <section id="p-inv" class="hide">
-<div id="stk"></div>
-<div id="spare"></div><datalist id="svwho"></datalist>
 <div class="card"><h2>Dodaj opremu</h2>
 <div class="row" style="margin-bottom:8px"><select id="a-type"></select><input id="a-qty" type="number" min="1" max="50" value="1" style="width:80px"></div>
 <div class="row" style="margin-bottom:8px"><div style="flex:1"><div class="mu">Oznaka (prefiks šifre)</div><input id="a-pre" maxlength="6" autocapitalize="characters" autocomplete="off"></div><div style="flex:1"><div class="mu">Počni od broja</div><input id="a-start" type="number" min="1" max="999" inputmode="numeric" placeholder="automatski"></div></div>
@@ -144,11 +142,13 @@ body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [d
 <label class="row mu" style="margin-bottom:8px"><input type="checkbox" id="a-fin" style="width:20px;height:20px;flex:none"> Plaćeno iz novca kluba (upiši izdatak u financije; cijena nabave vrijedi po komadu)</label>
 <button class="b" id="add" style="width:100%">Dodaj</button>
 <div class="mu" style="margin-top:6px">Servis: upozorenje se pojavi na 90 zarona ili 335 dana, a "treba servis" na 100 zarona ili 365 dana. Šifre se dodjeljuju automatski (npr. RE01, RE02… ili KP01, KP02…); oznaku i početni broj možeš sam promijeniti. Napiši ih flomasterom na opremu. Olova, rukavice, lampe, deco bove, padobran, vreća i kompas se ne vode kao komadi, nego se biraju kod izdavanja.</div></div>
-<div class="card"><h2>Cjenik (izlet)</h2><div id="cj"></div><button class="b" id="cjs" style="width:100%;margin-top:8px">Spremi cjenik</button><div class="mu" style="margin-top:6px">Cijene komada su za 1 dan; za više dana se same preračunaju. Eko akcija i tečaj su besplatni.</div></div>
+<div id="inv"></div>
+<div id="spare"></div><datalist id="svwho"></datalist>
+<div class="card"><h2>Cjenik (izlet)</h2><button class="b g" id="cjt" style="width:100%">Promijeni cjenik</button><div id="cjw" class="hide"><div id="cj" style="margin-top:10px"></div><button class="b" id="cjs" style="width:100%;margin-top:8px">Spremi cjenik</button><div class="mu" style="margin-top:6px">Cijene komada su za 1 dan; za više dana se same preračunaju. Eko akcija i tečaj su besplatni.</div></div></div>
 <div class="card"><h2>Sigurnosna kopija</h2><div class="row"><button class="b g" id="exi" style="flex:1">Inventar (CSV)</button><button class="b g" id="exh" style="flex:1">Povijest (CSV)</button></div><div class="mu" style="margin-top:6px">Tablicu otvoriš u Excelu ili Google Sheetsu. Preporučam izvoz nakon svakog izleta.</div></div>
+<div id="stk"></div>
 <div id="svcl"></div>
 <div id="sizes"></div>
-<div id="inv"></div>
 </section>
 </main>
 
@@ -618,11 +618,14 @@ function rowHtml(i){
 function renderInv(){
   $("inv").innerHTML=TYPES.map(([p,n])=>{
     const l=items.filter(i=>i.type===p).sort(byCode),f=l.filter(i=>i.status==="in").length;
-    return '<div class="card"><h2>'+n+' <span class="mu">('+f+'/'+l.length+' slobodno)</span></h2>'+(l.length?l.map(rowHtml).join(""):'<div class="mu">Još nema unosa.</div>')+'</div>';
+    const op=!!invOpen[p]||l.some(i=>i.id===editId||i.id===svId);
+    return '<div class="card"><h2 data-tg="'+p+'" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px"><span>'+n+' <span class="mu">('+f+'/'+l.length+' slobodno)</span></span><span class="mu">'+(op?"▾":"▸")+'</span></h2>'+(op?(l.length?l.map(rowHtml).join(""):'<div class="mu">Još nema unosa.</div>'):"")+'</div>';
   }).join("");
   renderStk();
 }
+let invOpen={};
 $("inv").onclick=async e=>{
+  const tg=e.target.closest("[data-tg]");if(tg){invOpen[tg.dataset.tg]=!invOpen[tg.dataset.tg];renderInv();return}
   const ed=e.target.closest("[data-ed]"),s2=e.target.closest("[data-sv2]"),cx=e.target.closest("[data-cx]");
   if(ed){editId=ed.dataset.ed;return renderInv()}
   if(cx){editId=null;return renderInv()}
@@ -709,10 +712,11 @@ function renderCj(){
   cjSum();
 }
 $("cj").oninput=cjSum;
+$("cjt").onclick=()=>{const w=$("cjw"),o=w.classList.toggle("hide");$("cjt").textContent=o?"Promijeni cjenik":"Zatvori cjenik";if(!o)renderCj()};
 $("cjs").onclick=async()=>{
   if(!db)return;const item={};
   $("cj").querySelectorAll("[data-cp]").forEach(x=>item[x.dataset.cp]=Math.max(0,Number(x.value)||0));
-  try{await db.doc("config/cjenik").set({item,base:Math.max(0,Number($("cb").value)||0),step:Math.max(0,Number($("cst").value)||0)});say("Cjenik spremljen.")}catch(e){say("Greška ("+(e.code||"?")+").")}
+  try{await db.doc("config/cjenik").set({item,base:Math.max(0,Number($("cb").value)||0),step:Math.max(0,Number($("cst").value)||0)});say("Cjenik spremljen.");$("cjw").classList.add("hide");$("cjt").textContent="Promijeni cjenik"}catch(e){say("Greška ("+(e.code||"?")+").")}
 };
 function pdfRow(p){
   const ts=[...new Set(p.l.filter(x=>x.action==="izdano"&&x.trip).map(x=>x.trip))];
