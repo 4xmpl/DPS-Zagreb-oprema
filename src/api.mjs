@@ -79,17 +79,57 @@ async function listCol(col) {
 const clean = o => JSON.parse(JSON.stringify(o ?? {}));
 const NOPE = () => json({ error: "Nemaš dopuštenje za ovu radnju." }, 403);
 
+const PIN_DAYS = 60;
+async function pinLimit(ip, add) {
+  const m = meta(), key = "pfail-" + String(ip || "x").replace(/[^0-9a-f:.]/gi, "");
+  const f = (await m.get(key, { type: "json" })) || { n: 0, t: Date.now() };
+  if (Date.now() - f.t > 15 * 60e3) { f.n = 0; f.t = Date.now(); }
+  if (add) { f.n++; await m.setJSON(key, f); }
+  return f.n >= 10;
+}
+async function mkPin(logId) {
+  if (!okId(String(logId || ""))) return null;
+  for (let i = 0; i < 20; i++) {
+    const code = String(100000 + (randomBytes(4).readUInt32BE(0) % 900000));
+    const r = await data().setJSON("pin/" + code, { log: logId, ts: Date.now() }, { onlyIfNew: true });
+    if (r && r.modified === false) continue;
+    return code;
+  }
+  return null;
+}
+async function minePublic(code, ip) {
+  if (await pinLimit(ip, false)) return json({ error: "Previše pokušaja. Pričekaj 15 minuta." }, 429);
+  code = String(code || "").replace(/\D/g, "");
+  const s = data(), p = code.length === 6 ? await s.get("pin/" + code, { type: "json" }) : null;
+  const lg = p && p.log ? await s.get("log/" + p.log, { type: "json" }) : null;
+  if (!lg || lg.action !== "izdano" || lg.voided) { await pinLimit(ip, true); return json({ error: "Kod nije točan." }, 404); }
+  if (Date.now() - (lg.ts || 0) > PIN_DAYS * 864e5) return json({ error: "Kod je istekao." }, 410);
+  const its = [];
+  for (const c of lg.codes || []) {
+    const it = (okId(c) && (await s.get("items/" + c, { type: "json" }))) || null;
+    if (!it) { its.push({ id: c, back: true }); continue; }
+    its.push({ id: c, type: it.type, size: it.size || "", rem: it.rem || "", note: it.note || "", back: !(it.status === "out" && it.batch === lg.batch) });
+  }
+  const free = !!lg.free || (lg.kind && lg.kind !== "izlet");
+  return json({ name: lg.name, trip: lg.trip || "", kind: lg.kind || "", days: lg.days || 1, ts: lg.ts, lead: lg.lead || "", items: its, price: free ? 0 : (lg.price || 0), free, paid: !!lg.paid });
+}
+
 export default async (req, context) => {
   if (req.method === "GET") return json({ app: "dps-oprema", ownerPin: !!envp("OWNER_PIN"), deputyPin: !!envp("DEPUTY_PIN") });
   if (req.method !== "POST") return json({ error: "POST" }, 405);
   let b; try { b = await req.json(); } catch { return json({ error: "Neispravan zahtjev." }, 400); }
   if (b.op === "login") { const r = await login(String(b.pin || "").trim(), context.ip); return json(r.body, r.status); }
 
+  if (b.op === "mine") return await minePublic(b.code, context.ip);
   const role = await readToken(req.headers.get("authorization"));
   if (!role) return json({ error: "auth" }, 401);
   const s = data();
 
   try {
+    if (b.op === "mkpin") {
+      const code = await mkPin(b.log);
+      return code ? json({ code }) : json({ error: "Kod nije izrađen." }, 500);
+    }
     if (b.op === "ver") {
       const { blobs } = await ver().list();
       const v = {}; blobs.forEach(x => (v[x.key] = x.etag)); return json({ v, role });
