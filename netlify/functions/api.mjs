@@ -869,8 +869,10 @@ var getStore = (input, options) => {
 
 // src/api.mjs
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
-var COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt"];
-var DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt"];
+var COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt", "spare", "fin"];
+var DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt", "spare", "fin"];
+var DEPUTY_NO_READ = ["fin"];
+var DEPUTY_LOG_LOCKED = ["free", "freeWhy", "saved", "dmgFee", "dmgCharged", "dmgTs"];
 var DAYS = 120;
 function envp(k) {
   let v;
@@ -952,6 +954,7 @@ async function listCol(col) {
   return out;
 }
 var clean = (o) => JSON.parse(JSON.stringify(o ?? {}));
+var NOPE = () => json({ error: "Nemaš dopuštenje za ovu radnju." }, 403);
 var api_default = async (req, context) => {
   if (req.method === "GET") return json({ app: "dps-oprema", ownerPin: !!envp("OWNER_PIN"), deputyPin: !!envp("DEPUTY_PIN") });
   if (req.method !== "POST") return json({ error: "POST" }, 405);
@@ -977,12 +980,15 @@ var api_default = async (req, context) => {
     }
     if (b.op === "list") {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
+      if (role === "deputy" && DEPUTY_NO_READ.includes(b.col)) return NOPE();
       return json({ docs: await listCol(b.col) });
     }
     if (["set", "update", "delete", "add"].includes(b.op)) {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
       if (role === "deputy" && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || b.op === "set" && b.col === "items"))
-        return json({ error: "Nema\u0161 dopu\u0161tenje za ovu radnju." }, 403);
+        return NOPE();
+      const body = clean(b.data);
+      if (role === "deputy" && b.col === "log") DEPUTY_LOG_LOCKED.forEach((k) => delete body[k]);
       let id = b.id;
       if (b.op === "add") id = Date.now().toString(36) + randomBytes(4).toString("hex");
       if (!okId(id)) return json({ error: "id" }, 400);
@@ -991,11 +997,11 @@ var api_default = async (req, context) => {
       else if (b.op === "update") {
         const cur = await s.get(key, { type: "json" });
         if (cur == null) return json({ error: "Dokument ne postoji." }, 404);
-        await s.setJSON(key, Object.assign({}, cur, clean(b.data)));
+        await s.setJSON(key, Object.assign({}, cur, body));
       } else if (b.op === "set" && b.merge) {
         const cur = await s.get(key, { type: "json" }) || {};
-        await s.setJSON(key, Object.assign({}, cur, clean(b.data)));
-      } else await s.setJSON(key, clean(b.data));
+        await s.setJSON(key, Object.assign({}, cur, body));
+      } else await s.setJSON(key, body);
       await bump(b.col);
       return json({ ok: true, id });
     }
