@@ -23,3 +23,5 @@ sa `test/shim-test.js` umjesto `public/shim.js`, pa se objavi kao privatni Artif
 - 20.10.2026. **Potvrda (toast)** na dnu ekrana, 5 s, klik zatvara, kratka vibracija: nakon izdavanja ("Posuđeno: ime · N komada · vraća do …"), nakon povrata ("Vraćeno: ime · N stavki · naplatiti/šteta") i nakon dodavanja opreme u inventar i rezervnih dijelova. Staro tekstualno obavještenje na vrhu ostaje.
 - 20.10.2026. **Povrat sa zatvorenim karticama**: kartica osobe prikazuje ime, broj komada, najraniji rok, KASNI N d i neplaćeno; klik otvara sve kao prije (uključujući "Vrati sve", samo na otvorenoj); poredak: najviše kasni, pa rok, pa ime; polje "Traži osobu…"; otvorena kartica ostaje otvorena pri osvježavanju, a automatski se otvara kad su označeni komadi ili šteta. Povijest nepromijenjena.
 - 20.10.2026. **Inventar**: kartica "Dodaj opremu" zatvorena, otvara se klikom, zatvara se nakon uspješnog dodavanja.
+
+- Test verzija: PDF/CSV preuzimanje radi preko `downloads` mogućnosti Artifacta (test/shim-test.js; potvrda pri spremanju). Prava aplikacija se ne mijenja.

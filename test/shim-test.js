@@ -61,11 +61,16 @@
     collection: function (col) { return { doc: function (id) { return docRef(col, id); }, add: function (d) { return write(col, "add", null, d); }, onSnapshot: function (cb, err) { return sub(col, null, cb, err); } }; },
     doc: function (p) { var a = p.split("/"); return docRef(a[0], a[1]); }
   };
-  var dl = { save: function (o) {
+  var dl = { save: async function (o) {
+    try {
+      if (window.claude && window.claude.use) {
+        var real = await window.claude.use("downloads");
+        if (real) return await real.save({ filename: o.filename, data: o.data });
+      }
+    } catch (e) { if (e && e.code === "declined") return; }
     var blob = o.data instanceof Blob ? o.data : new Blob([o.data], { type: "text/csv;charset=utf-8" });
     var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = o.filename; document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-    return Promise.resolve();
   } };
   var user = { isOwner: function () { return Promise.resolve(true); } };
   window.dpsApi = ({ use: function (n) { return Promise.resolve(n === "db" ? db : n === "user" ? user : n === "downloads" ? dl : null); } });
