@@ -91,7 +91,7 @@ body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [d
 <div id="sugg"></div>
 <div class="card"><h2>Izlet / akcija</h2>
 <input id="trip" list="trips" placeholder="npr. Vis 2026, čišćenje Jarun" autocomplete="off" style="margin-bottom:8px"><datalist id="trips"></datalist><div id="tchips" style="margin-bottom:8px"></div>
-<select id="kind"><option value="eko">Eko akcija – oprema besplatno</option><option value="izlet">Običan izlet – oprema se plaća</option><option value="tecaj">Tečaj – besplatno</option></select><div id="durw" style="margin-top:8px"><div class="mu" style="margin-bottom:4px">Broj dana posudbe</div><input id="days" type="number" min="1" max="60" value="1" inputmode="numeric"></div></div>
+<select id="kind"><option value="eko">Eko akcija – oprema besplatno</option><option value="izlet">Običan izlet – oprema se plaća</option><option value="tecaj">Tečaj – besplatno</option></select><div id="durw" style="margin-top:8px"><div class="mu" style="margin-bottom:4px">Broj dana posudbe</div><input id="days" type="number" min="1" max="60" value="1" inputmode="numeric"></div><div id="duew" style="margin-top:8px"><div class="mu" style="margin-bottom:4px">Vraća do (obavezno)</div><input id="due" type="date"><div class="mu" id="duehint" style="margin-top:4px"></div></div></div>
 <div id="pick"></div>
 <div class="card"><h2>Rukavice i ostalo</h2>
 <label class="row" style="margin-bottom:8px"><input type="checkbox" data-x="gloves" style="width:22px;height:22px;flex:none"> Rukavice</label>
@@ -241,16 +241,17 @@ $("save").onclick=async()=>{
   const name=$("who").value.trim(),trip=$("trip").value.trim(),kind=$("kind").value,days=Math.max(1,Math.min(60,parseInt($("days").value)||1)),batch=Date.now(),full=calcPrice(),fo=kind==="izlet"&&$("free").checked,why=$("freewhy").value.trim(),price=fo?0:full;
   if(!name)return say("Upiši ime osobe.");
   if(!trip)return say("Upiši izlet ili akciju.");
+  const due=$("due").value;if(!due)return say("Upiši do kada se oprema vraća.");if(due<todayIso())return say("Datum povratka ne može biti prije današnjeg dana.");
   if(fo&&!why)return say("Upiši razlog zašto je besplatno.");
   if(!sel.length&&!lon(lead))return say("Odaberi barem jedan komad opreme ili olovo.");
   if(!db||busy)return;
   busy=true;$("save").disabled=true;say("");
   try{
     const codes=sel.filter(c=>{const i=items.find(x=>x.id===c);return i&&i.status==="in"});
-    for(const c of codes) await db.collection("items").doc(c).update({status:"out",holder:name,since:Date.now(),trip,kind,days,batch});
+    for(const c of codes) await db.collection("items").doc(c).update({status:"out",holder:name,since:Date.now(),trip,kind,days,due,batch});
     let lt="";
-    if(lon(lead)){lt=leadTxt(lead);await db.collection("lead").add({holder:name,trip,kind,since:Date.now(),status:"out",days,batch,belt:lead.belt,w25:lead.w25,w2:lead.w2,w1:lead.w1,gloves:!!lead.gloves,pad:!!lead.pad,vre:!!lead.vre,kom:!!lead.kom,lam:!!lead.lam,bova:lead.bova||"",boca:!!lead.boca})}
-    await db.collection("log").add(Object.assign({ts:batch,batch,name,action:"izdano",codes,lead:lt,trip,kind,days,price,leadObj:lt?JSON.parse(JSON.stringify(lead)):null},fo?{free:true,freeWhy:why,saved:full}:{}));
+    if(lon(lead)){lt=leadTxt(lead);await db.collection("lead").add({holder:name,trip,kind,since:Date.now(),status:"out",days,due,batch,belt:lead.belt,w25:lead.w25,w2:lead.w2,w1:lead.w1,gloves:!!lead.gloves,pad:!!lead.pad,vre:!!lead.vre,kom:!!lead.kom,lam:!!lead.lam,bova:lead.bova||"",boca:!!lead.boca})}
+    await db.collection("log").add(Object.assign({ts:batch,batch,name,action:"izdano",codes,lead:lt,trip,kind,days,due,price,leadObj:lt?JSON.parse(JSON.stringify(lead)):null},fo?{free:true,freeWhy:why,saved:full}:{}));
     sel=[];lead={belt:false,w25:0,w2:0,w1:0};$("belt").value="0";document.querySelectorAll("[data-x]").forEach(c=>c.checked=false);$("bova").value="";$("who").value="";$("free").checked=false;$("freewhy").value="";renderPick();renderLead();renderSugg();
     say("Spremljeno za "+name+" ("+(kind==="izlet"?(fo?"besplatno – "+why:"naplatiti "+fm(price)):kindTxt(kind))+").");
   }catch(e){say("Greška pri spremanju ("+(e.code||"?")+"). Provjeri imaš li pravo uređivanja.")}
@@ -259,8 +260,8 @@ $("save").onclick=async()=>{
 
 /* ---- povrat ---- */
 function entries(){
-  const a=items.filter(i=>i.status==="out").sort(byCode).map(i=>({k:i.id,holder:i.holder,t:TN[i.type]+" "+lbl(i),since:i.since,trip:i.trip,kind:i.kind,days:i.days,batch:i.batch,rem:i.rem||"",note:i.note||""}));
-  const b=leads.filter(l=>l.status==="out").map(l=>({k:"lead:"+l.id,lead:l,holder:l.holder,t:leadTxt(l),since:l.since,trip:l.trip,kind:l.kind,days:l.days,batch:l.batch}));
+  const a=items.filter(i=>i.status==="out").sort(byCode).map(i=>({k:i.id,holder:i.holder,t:TN[i.type]+" "+lbl(i),since:i.since,trip:i.trip,kind:i.kind,days:i.days,due:i.due||"",batch:i.batch,rem:i.rem||"",note:i.note||""}));
+  const b=leads.filter(l=>l.status==="out").map(l=>({k:"lead:"+l.id,lead:l,holder:l.holder,t:leadTxt(l),since:l.since,trip:l.trip,kind:l.kind,days:l.days,due:l.due||"",batch:l.batch}));
   return a.concat(b);
 }
 function renderOv(){
@@ -307,7 +308,7 @@ $("rets").onclick=async e=>{
     try{
       for(const x of es0){
         if(x.lead)await db.collection("lead").doc(x.lead.id).update({status:"in"});
-        else await db.collection("items").doc(x.k).update({status:"in",holder:"",since:0,trip:"",kind:"",days:0,batch:0});
+        else await db.collection("items").doc(x.k).update({status:"in",holder:"",since:0,trip:"",kind:"",days:0,due:"",batch:0});
       }
       await db.collection("log").doc(lg.id).update({voided:true});say("Izdavanje poništeno.");
     }catch(err){say("Greška ("+(err.code||"?")+").")}
@@ -329,7 +330,7 @@ $("rets").onclick=async e=>{
     const dl=es.filter(x=>!x.lead&&dsel[x.k]),dm=dl.map(x=>x.k+(ddesc[x.k]?" – "+ddesc[x.k]:"")+(dout[x.k]!==false?" (servis)":" (u uporabi)"));
     for(const x of es){
       if(x.lead)await db.collection("lead").doc(x.lead.id).update({status:"in"});
-      else await db.collection("items").doc(x.k).update(Object.assign({status:dsel[x.k]&&dout[x.k]!==false?"servis":"in",holder:"",since:0,trip:"",kind:"",days:0,batch:0,dives:((items.find(t=>t.id===x.k)||{}).dives||0)+nd,zu:((items.find(t=>t.id===x.k)||{}).zu||0)+nd},dsel[x.k]?{note:"Šteta: "+(ddesc[x.k]||"bez opisa")+" ("+name+", "+new Date().toLocaleDateString("hr")+")"}:{}));
+      else await db.collection("items").doc(x.k).update(Object.assign({status:dsel[x.k]&&dout[x.k]!==false?"servis":"in",holder:"",since:0,trip:"",kind:"",days:0,due:"",batch:0,dives:((items.find(t=>t.id===x.k)||{}).dives||0)+nd,zu:((items.find(t=>t.id===x.k)||{}).zu||0)+nd},dsel[x.k]?{note:"Šteta: "+(ddesc[x.k]||"bez opisa")+" ("+name+", "+new Date().toLocaleDateString("hr")+")"}:{}));
       delete rsel[x.k];delete dsel[x.k];delete ddesc[x.k];delete dout[x.k];delete dchg[x.k];delete dfee[x.k];
     }
     await db.collection("log").add(Object.assign({ts:Date.now(),name,action:"vraćeno",codes:es.filter(x=>!x.lead).map(x=>x.k),lead:es.filter(x=>x.lead).map(x=>leadTxt(x.lead)).join("; "),trip:es[0].trip||"",kind:es[0].kind||"",days:es[0].days||0,batch:es[0].batch||0,dmg:dm,zaroni:nd},fee>0?{dmgFee:fee,dmgCharged:true,dmgTs:Date.now()}:{}));
@@ -380,8 +381,19 @@ function renderTrips(){
   $("trips").innerHTML=seen.slice(0,30).map(t=>'<option value="'+esc(t.t)+'">').join("");
   $("names").innerHTML=[...new Set(logs.map(x=>x.name.trim()))].sort((a,b)=>a.localeCompare(b)).map(n=>'<option value="'+esc(n)+'">').join("");
 }
-$("tchips").onclick=e=>{const b=e.target.closest("[data-tr]");if(b){$("trip").value=b.dataset.tr;if(b.dataset.kd)$("kind").value=b.dataset.kd;if(b.dataset.du)$("days").value=b.dataset.du;renderPrice()}};
-$("trip").onchange=()=>{const x=logs.find(l=>l.trip===$("trip").value.trim()&&l.kind);if(x){$("kind").value=x.kind;if(x.days)$("days").value=x.days;renderPrice()}};
+function dueFromTrip(){
+  const t=$("trip").value.trim(),x=t&&logs.find(l=>l.action==="izdano"&&l.trip===t&&l.due&&l.due>=todayIso());
+  if(x)$("due").value=x.due;renderDue();
+}
+function renderDue(){
+  const v=$("due").value,h=$("duehint");
+  if(!v){h.textContent="Reci osobi ovaj datum odmah pri izdavanju.";return}
+  const d=new Date(v+"T00:00:00"),n=Math.round((d-new Date(todayIso()+"T00:00:00"))/864e5);
+  h.textContent=d.toLocaleDateString("hr",{weekday:"long",day:"numeric",month:"numeric"})+(n>0?" · za "+n+" "+(n===1?"dan":"dana"):n===0?" · danas":" · prošlo");
+}
+$("due").oninput=renderDue;$("due").onchange=renderDue;renderDue();
+$("tchips").onclick=e=>{const b=e.target.closest("[data-tr]");if(b){$("trip").value=b.dataset.tr;if(b.dataset.kd)$("kind").value=b.dataset.kd;if(b.dataset.du)$("days").value=b.dataset.du;dueFromTrip();renderPrice()}};
+$("trip").onchange=()=>{const x=logs.find(l=>l.trip===$("trip").value.trim()&&l.kind);if(x){$("kind").value=x.kind;if(x.days)$("days").value=x.days;renderPrice()}dueFromTrip()};
 $("q").oninput=renderHis;
 
 
@@ -405,6 +417,7 @@ function hForm(g){
     '<div class="mu">Izlet / akcija</div><input data-hf="trip" value="'+esc(g.trip||"")+'" style="margin-bottom:8px">'+
     '<div class="mu">Vrsta</div><select data-hf="kind" style="margin-bottom:8px"><option value="eko"'+(g.kind==="eko"?" selected":"")+'>Eko akcija – besplatno</option><option value="izlet"'+(g.kind==="izlet"?" selected":"")+'>Običan izlet – plaća se</option><option value="tecaj"'+(g.kind==="tecaj"?" selected":"")+'>Tečaj – besplatno</option></select>'+
     '<div class="mu">Broj dana</div><input data-hf="days" type="number" min="1" max="60" inputmode="numeric" value="'+esc(g.days||1)+'" style="margin-bottom:8px">'+
+    '<div class="mu">Vraća do</div><input data-hf="due" type="date" value="'+esc((iz.find(l=>l.due)||{}).due||"")+'" style="margin-bottom:8px">'+
     (iz.length?'<div class="mu">Cijena (€)</div><div class="row" style="margin-bottom:8px"><input data-hf="price" type="text" data-dec="1" inputmode="decimal" value="'+esc(pr)+'"><button class="b g" data-hrc style="flex:none">Preračunaj</button></div>'+
       '<label class="row" style="margin-bottom:10px"><input type="checkbox" data-hf="paid" style="width:22px;height:22px;flex:none"'+(paid?" checked":"")+'> Plaćeno</label>'+
       '<label class="row" style="margin-bottom:6px"><input type="checkbox" data-hf="free" style="width:22px;height:22px;flex:none"'+(fr0?" checked":"")+'> Besplatno (ne plaća)</label><input data-hf="freewhy" placeholder="Razlog besplatnosti (obavezno ako je označeno)" value="'+esc(why0)+'" style="margin-bottom:10px">':"")+
@@ -424,7 +437,8 @@ function hRecalc(g){
 async function hSave(g){
   const f=k=>$("his").querySelector('[data-hf="'+k+'"]'),name=f("name").value.trim(),trip=f("trip").value.trim(),kind=f("kind").value,days=Math.max(1,Math.min(60,parseInt(f("days").value)||1));
   if(!name)return say("Upiši ime osobe.");
-  const {all,bs}=hAll(g),upd={name,trip,kind,days},pf=f("price"),pc=f("paid");
+  const dueV=(f("due")||{}).value||"";
+  const {all,bs}=hAll(g),upd=Object.assign({name,trip,kind,days},dueV?{due:dueV}:{}),pf=f("price"),pc=f("paid");
   const fch=f("free"),fwhy=f("freewhy"),isFree=!!(fch&&fch.checked&&kind==="izlet"),why=fwhy?fwhy.value.trim():"",wasFree=all.some(l=>l.free);
   if(isFree&&!why)return say("Upiši razlog zašto je besplatno.");
   const dc=f("dchg"),dfv=f("dfee"),chgOn=!!(dc&&dc.checked),feeV=dfv?Math.max(0,Number(dfv.value)||0):0;
@@ -443,8 +457,8 @@ async function hSave(g){
     await db.collection("log").doc(l.id).update(u);
   }
   if(bs.size){
-    for(const i of items)if(i.batch&&bs.has(i.batch)&&i.status==="out")await db.collection("items").doc(i.id).update({holder:name,trip,kind,days});
-    for(const l of leads)if(l.batch&&bs.has(l.batch)&&l.status==="out")await db.collection("lead").doc(l.id).update({holder:name,trip,kind,days});
+    for(const i of items)if(i.batch&&bs.has(i.batch)&&i.status==="out")await db.collection("items").doc(i.id).update(Object.assign({holder:name,trip,kind,days},dueV?{due:dueV}:{}));
+    for(const l of leads)if(l.batch&&bs.has(l.batch)&&l.status==="out")await db.collection("lead").doc(l.id).update(Object.assign({holder:name,trip,kind,days},dueV?{due:dueV}:{}));
   }
   hed=null;hedAsk=false;say("Zapis je spremljen.");renderHis();
 }
@@ -733,7 +747,7 @@ async function makePdf(key,trip){
   const rows=P.map(x=>{
     const fr=isFreeKind(x.kind)||!!x.free;if(!fr){total+=x.price||0;if(x.paid)paidSum+=x.price||0}
     const eq=x.codes.map(c=>{const i=items.find(t=>t.id===c);return esc((i?TN[i.type]+" ":"")+c)}).concat(x.lead?[esc(lbtxt(x.lead))]:[]).join(", ");
-    return '<tr><td style="'+th+'">'+new Date(x.ts).toLocaleDateString("hr")+'</td><td style="'+th+'"><b>'+esc(x.trip||"–")+'</b><br><span style="color:#555">'+kindLong(x.kind)+'</span></td><td style="'+th+'">'+dayTxt(x.days||1)+'</td><td style="'+th+'">'+eq+'</td><td style="'+th+';text-align:right;white-space:nowrap">'+frTxt(x,fr)+'</td></tr>';
+    return '<tr><td style="'+th+'">'+new Date(x.ts).toLocaleDateString("hr")+'</td><td style="'+th+'"><b>'+esc(x.trip||"–")+'</b><br><span style="color:#555">'+kindLong(x.kind)+'</span></td><td style="'+th+'">'+dayTxt(x.days||1)+(x.due?'<br><span style="color:#555">vratiti do '+new Date(x.due+"T00:00:00").toLocaleDateString("hr")+'</span>':"")+'</td><td style="'+th+'">'+eq+'</td><td style="'+th+';text-align:right;white-space:nowrap">'+frTxt(x,fr)+'</td></tr>';
   }).join("");
   $("pdfbox").innerHTML='<div style="font-size:20px;font-weight:700">DPS Zagreb – posudba opreme</div><div style="margin:6px 0 14px;font-size:16px">'+esc(name)+'<span style="color:#555"> · izvoz '+new Date().toLocaleDateString("hr")+'</span></div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="'+th+'">Datum</th><th style="'+th+'">Izlet</th><th style="'+th+'">Dana</th><th style="'+th+'">Oprema</th><th style="'+th+';text-align:right">Cijena</th></tr>'+rows+'</table>'+
@@ -763,7 +777,7 @@ async function makeTripPdf(trip){
   const rows=P.map(x=>{
     const fr=isFreeKind(x.kind)||!!x.free;if(!fr){total+=x.price||0;if(x.paid)paidSum+=x.price||0}
     const eq=x.codes.map(c=>{const i=items.find(t=>t.id===c);return esc((i?TN[i.type]+" ":"")+c)}).concat(x.lead?[esc(lbtxt(x.lead))]:[]).join(", ");
-    return '<tr><td style="'+th+'"><b>'+esc(x.name.trim())+'</b></td><td style="'+th+'">'+new Date(x.ts).toLocaleDateString("hr")+'</td><td style="'+th+'">'+dayTxt(x.days||1)+'</td><td style="'+th+'">'+eq+'</td><td style="'+th+';text-align:right;white-space:nowrap">'+frTxt(x,fr)+'</td></tr>';
+    return '<tr><td style="'+th+'"><b>'+esc(x.name.trim())+'</b></td><td style="'+th+'">'+new Date(x.ts).toLocaleDateString("hr")+'</td><td style="'+th+'">'+dayTxt(x.days||1)+(x.due?'<br><span style="color:#555">vratiti do '+new Date(x.due+"T00:00:00").toLocaleDateString("hr")+'</span>':"")+'</td><td style="'+th+'">'+eq+'</td><td style="'+th+';text-align:right;white-space:nowrap">'+frTxt(x,fr)+'</td></tr>';
   }).join("");
   $("pdfbox").innerHTML='<div style="font-size:20px;font-weight:700">DPS Zagreb – posudba opreme</div><div style="margin:6px 0 14px;font-size:16px">'+esc(trip)+'<span style="color:#555"> · '+kindLong(P[0].kind)+' · '+people+' '+(people===1?"osoba":"osoba")+' · izvoz '+new Date().toLocaleDateString("hr")+'</span></div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="'+th+'">Osoba</th><th style="'+th+'">Datum</th><th style="'+th+'">Dana</th><th style="'+th+'">Oprema</th><th style="'+th+';text-align:right">Cijena</th></tr>'+rows+'</table>'+
@@ -778,8 +792,9 @@ $("tripdf").onclick=async()=>{
 };
 
 function dueInfo(f){
-  if(!f.since||!f.days)return null;
-  const d=new Date(f.since);d.setHours(0,0,0,0);d.setDate(d.getDate()+f.days);
+  let d;
+  if(f.due)d=new Date(f.due+"T00:00:00");
+  else{if(!f.since||!f.days)return null;d=new Date(f.since);d.setHours(0,0,0,0);d.setDate(d.getDate()+f.days)}
   const t=new Date();t.setHours(0,0,0,0);const late=Math.round((t-d)/86400000);
   return {d,late:late>0?late:0};
 }

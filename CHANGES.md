@@ -7,7 +7,7 @@ Testna verzija (lažni podaci, ne dira pravu bazu): `python3 test/build_test.py 
 sa `test/shim-test.js` umjesto `public/shim.js`, pa se objavi kao privatni Artifact.
 
 ## Dogovoreno, još nije napravljeno
-1. Datum povratka obavezan pri izdavanju, odvojen od broja dana za cijenu; pamti zadnji datum za isti izlet; kašnjenje se broji tek od tog datuma; datum na PDF popisu; mogućnost naknadne izmjene u povijesti; bez ograničenja od 60 dana za tečaj i eko.
+1. (ostalo od točke "Datum povratka": nema ograničenja od 60 dana za tečaj/eko; stupac "Vraća do" u CSV-u povijesti.)
 2. Povrat: zatvorene kartice (ime, izlet, broj komada, rok, oznake KASNI / neplaćeno); klik otvara sve; „Vrati sve" samo na otvorenoj kartici; poredak: kasne, pa rok, pa ime; polje za traženje; otvorena kartica ostaje otvorena pri osvježavanju. Povijest se ne mijenja.
 3. Inventar: kartica „Dodaj opremu" zatvorena, otvara se klikom, zatvara nakon dodavanja, ostaje otvorena dok se upisuje.
 4. Glitchevi koje Romano još opisuje.
@@ -18,4 +18,5 @@ sa `test/shim-test.js` umjesto `public/shim.js`, pa se objavi kao privatni Artif
 - Javna stranica „Moja oprema" (grana moja-oprema-qr), samostalni upis uz potvrdu.
 
 ## Napravljeno na grani razvoj
-(još ništa osim alata za testnu verziju)
+- 20.10.2026. Alati za testnu verziju (`test/`), lažna baza, učitavanje sigurnosne kopije (podaci se ne commitaju).
+- 20.10.2026. **Datum povratka** (`public/index.html`): novo polje `due` (yyyy-mm-dd) pri izdavanju, obavezno, ne smije biti u prošlosti; sprema se na komad (`items`), olovo (`lead`) i zapis (`log`); `dueInfo` koristi `due` ako postoji, inače stari izračun (izdavanje + dani), pa stari zapisi rade kao prije; kašnjenje se broji od dana nakon roka; za isti izlet se prijedlog roka pamti iz zadnjeg izdavanja; rok se briše pri povratu; uređuje se u Povijesti; "vratiti do" na PDF-u po osobi i po izletu; popis za povrat već prikazuje rok. Cijena i dalje ide samo po broju dana.
