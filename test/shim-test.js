@@ -1,11 +1,12 @@
 /* TESTNA zamjena za public/shim.js: ista sučelja (claude.use db/user/downloads),
    ali baza je lažna i živi samo u ovom pregledniku. Ne dira pravu aplikaciju. */
 (function () {
-  var KEY = "dpsTestDb-v1", COLS = ["items","lead","log","plans","svclog","config","stock","stockcnt","spare","fin"];
+  var KEY = "dpsTestDb-v2", COLS = ["items","lead","log","plans","svclog","config","stock","stockcnt","spare","fin"];
   var data = null, subs = {};
   function load() {
     try { var s = localStorage.getItem(KEY); if (s) { data = JSON.parse(s); return; } } catch (e) {}
-    data = seed();
+    data = window.DPS_SEED ? JSON.parse(JSON.stringify(window.DPS_SEED)) : seed();
+    COLS.forEach(function (c) { data[c] = data[c] || {}; });
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
   function today(off) { var d = new Date(); d.setDate(d.getDate() + (off || 0)); return d.toISOString().slice(0, 10); }

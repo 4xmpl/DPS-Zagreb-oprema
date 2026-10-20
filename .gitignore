@@ -1,2 +1,4 @@
 .netlify
 node_modules
+test/seed*.json
+seed-data.js
