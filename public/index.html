@@ -29,6 +29,9 @@ nav::-webkit-scrollbar{display:none}
 nav button{flex:1 1 0;min-width:48px;max-width:100px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;border:0;background:none;color:var(--mu);border-radius:10px;font:inherit;font-weight:600;font-size:.62rem}
 nav button i{font-style:normal;font-size:1.3rem;line-height:1.2}
 nav button.on{background:var(--ac2);color:var(--ac)}
+nav #moreb{position:fixed;left:6px;right:6px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:21;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;background:var(--card);border:1px solid var(--bd);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+nav #moreb.hide{display:none}
+nav #moreb button{max-width:none}
 .ov{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
 .ov button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;padding:8px 2px;font:inherit;text-align:center}
 .ov b{display:block;font-size:1.35rem;line-height:1.1}.ov span{font-size:.7rem;color:var(--mu)}
@@ -60,7 +63,7 @@ button:disabled{opacity:.5}
 .it input[type=checkbox]{width:22px;height:22px}
 .msg{padding:10px;border-radius:8px;background:var(--ac2);margin-bottom:10px}
 .hide{display:none}
-body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [data-t="stat"],body.simple nav [data-t="fin"],body.simple [data-undo],body.simple [data-pld],body.simple [data-hed],body.simple .own{display:none}
+body.simple nav [data-t="pay"],body.simple nav #morebtn,body.simple nav #moreb,body.simple nav [data-t="inv"],body.simple nav [data-t="stat"],body.simple nav [data-t="fin"],body.simple [data-undo],body.simple [data-pld],body.simple [data-hed],body.simple .own{display:none}
 .spov button{width:100%;text-align:left;border:1px solid var(--er);background:color-mix(in srgb,var(--er) 12%,transparent);color:var(--er);border-radius:12px;padding:10px 12px;font:inherit;font-weight:600;margin-bottom:10px}
 .amt{font-weight:700;white-space:nowrap}.amt.p{color:var(--ok)}.amt.m{color:var(--er)}
 .sp{display:flex;gap:6px;align-items:center}.sp .cnt{min-width:24px}
@@ -84,10 +87,13 @@ body.simple nav [data-t="pay"],body.simple nav [data-t="inv"],body.simple nav [d
 <button data-t="ret"><i>↩️</i>Povrat</button>
 <button data-t="pay"><i>💶</i>Naplata</button>
 <button data-t="his"><i>🕘</i>Povijest</button>
+<button id="morebtn" type="button"><i>⋯</i>Više</button>
+<div id="moreb" class="hide">
 <button data-t="inv"><i>📦</i>Inventar</button>
 <button data-t="plan"><i>📅</i>Plan</button>
 <button data-t="stat"><i>📊</i>Statistika</button>
 <button data-t="fin"><i>💰</i>Financije</button>
+</div>
 </nav>
 
 <section id="p-out">
@@ -204,9 +210,12 @@ function toast(title,sub){
 }
 function say(t){$("msg").innerHTML=t?'<div class="msg">'+esc(t)+'</div>':""}
 
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
-  window.scrollTo(0,0);
-  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+$("morebtn").onclick=e=>{e.stopPropagation();$("moreb").classList.toggle("hide")};
+document.addEventListener("click",e=>{if(!e.target.closest("#moreb,#morebtn"))$("moreb").classList.add("hide")});
+document.querySelectorAll("nav button[data-t]").forEach(b=>b.onclick=()=>{
+  window.scrollTo(0,0);$("moreb").classList.add("hide");
+  document.querySelectorAll("nav button[data-t]").forEach(x=>x.classList.toggle("on",x===b));
+  $("morebtn").classList.toggle("on",!!b.closest("#moreb"));
   ["out","ret","pay","his","inv","plan","stat","fin"].forEach(t=>$("p-"+t).classList.toggle("hide",t!==b.dataset.t));
 });
 $("a-type").innerHTML=TYPES.map(t=>'<option value="'+t[0]+'">'+t[1]+'</option>').join("");

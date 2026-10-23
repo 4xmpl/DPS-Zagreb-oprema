@@ -27,3 +27,5 @@ sa `test/shim-test.js` umjesto `public/shim.js`, pa se objavi kao privatni Artif
 - 20.10.2026. **Inventar**: kartica "Dodaj opremu" zatvorena, otvara se klikom, zatvara se nakon uspješnog dodavanja.
 
 - Test verzija: PDF/CSV preuzimanje radi preko `downloads` mogućnosti Artifacta (test/shim-test.js; potvrda pri spremanju). Prava aplikacija se ne mijenja.
+
+- Navigacija: dolje Izdavanje, Povrat, Naplata, Povijest + "Više ⋯" (otvara Inventar, Plan, Statistika, Financije). Napravljeno na razvoju, čeka Romanov dojam. U pojednostavljenom prikazu "Više" je skriven.
