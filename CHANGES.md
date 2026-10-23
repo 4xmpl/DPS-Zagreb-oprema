@@ -10,7 +10,9 @@ sa `test/shim-test.js` umjesto `public/shim.js`, pa se objavi kao privatni Artif
 1. (ostalo od točke "Datum povratka": nema ograničenja od 60 dana za tečaj/eko; stupac "Vraća do" u CSV-u povijesti.)
 2. Povrat: zatvorene kartice (ime, izlet, broj komada, rok, oznake KASNI / neplaćeno); klik otvara sve; „Vrati sve" samo na otvorenoj kartici; poredak: kasne, pa rok, pa ime; polje za traženje; otvorena kartica ostaje otvorena pri osvježavanju. Povijest se ne mijenja.
 3. Inventar: kartica „Dodaj opremu" zatvorena, otvara se klikom, zatvara nakon dodavanja, ostaje otvorena dok se upisuje.
-4. Glitchevi koje Romano još opisuje.
+4. Izdavanje: pojas za olovo se bira automatski. Zadano "Olova + pojas" čim se upiše bilo koje olovo (i kroz prijedlog iz plana); ručno se može staviti "bez pojasa" (rijetka iznimka). Potvrdio Romano 23.10. (javio iz izdavanja za tečaj, 11 ljudi: relativno okej, ovo je jedini glitch dosad).
+5. Navigacija: 8 kartica dolje je natrpano (predloženo: 5 + "Više", dva reda ili spajanje Naplate u Povrat). Čeka Romanov odabir.
+6. Ostali glitchevi koje Romano još opisuje.
 
 ## Ideje (kasnije)
 - Plan: pregled „5/12 dobilo opremu" s kvačicama; izbor između više slobodnih komada iste veličine; komplet za tečaj.
