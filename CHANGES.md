@@ -28,4 +28,5 @@ sa `test/shim-test.js` umjesto `public/shim.js`, pa se objavi kao privatni Artif
 
 - Test verzija: PDF/CSV preuzimanje radi preko `downloads` mogućnosti Artifacta (test/shim-test.js; potvrda pri spremanju). Prava aplikacija se ne mijenja.
 
+- 10.11.2026. **Pojas za olovo automatski** (Izdavanje): čim se doda olovo, izbor se sam prebaci na "Olova + pojas"; kad se olovo vrati na 0, vraća se na bez pojasa. Ako se izbor ručno promijeni, ostaje kako je odabrano do kraja tog izdavanja. Prijedlog "isto kao zadnji put" zadržava pojas iz tog zapisa. Provjereno u jsdom simulaciji.
 - Navigacija: dolje Izdavanje, Povrat, Naplata, Povijest + "Više ⋯" (otvara Inventar, Plan, Statistika, Financije). Napravljeno na razvoju, čeka Romanov dojam. U pojednostavljenom prikazu "Više" je skriven.

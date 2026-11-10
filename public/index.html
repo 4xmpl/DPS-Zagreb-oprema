@@ -179,7 +179,7 @@ const PD={item:{RE:5,BCD:4,ODI:4,CIZ:1,RUK:1,MAS:2,PER:2,OLO:2,LAM:3,BOV:2,PAD:2
 let prices=JSON.parse(JSON.stringify(PD));
 const capD=n=>prices.base+prices.step*(Math.max(1,n)-1);
 const dayTxt=n=>n+" "+(n===1?"dan":"dana");
-let db=null,items=[],leads=[],logs=[],sel=[],rsel={},busy=false,editId=null,lead={belt:false,gloves:false,w25:0,w2:0,w1:0};
+let db=null,items=[],leads=[],logs=[],sel=[],rsel={},busy=false,editId=null,beltManual=false,lead={belt:false,gloves:false,w25:0,w2:0,w1:0};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const byCode=(a,b)=>a.id.localeCompare(b.id);
@@ -251,8 +251,8 @@ function renderLead(){
   $("lead").innerHTML=LW.map(w=>'<div class="row" style="justify-content:space-between;margin-bottom:6px"><b>'+kg(w[1])+' kg</b><span class="row"><button class="b g st" data-d="-1" data-w="'+w[0]+'">−</button><span class="cnt">'+lead[w[0]]+'</span><button class="b g st" data-d="1" data-w="'+w[0]+'">+</button></span></div>').join("")+
     '<div class="mu">Ukupno: '+kg(ltot(lead))+' kg</div>';
 }
-$("lead").onclick=e=>{const b=e.target.closest("[data-w]");if(b){lead[b.dataset.w]=Math.max(0,Math.min(20,lead[b.dataset.w]+Number(b.dataset.d)));renderLead()}};
-$("belt").onchange=()=>{lead.belt=$("belt").value==="1";renderPrice()};
+$("lead").onclick=e=>{const b=e.target.closest("[data-w]");if(b){lead[b.dataset.w]=Math.max(0,Math.min(20,lead[b.dataset.w]+Number(b.dataset.d)));if(!beltManual){lead.belt=ltot(lead)>0;$("belt").value=lead.belt?"1":"0"}renderLead()}};
+$("belt").onchange=()=>{beltManual=true;lead.belt=$("belt").value==="1";renderPrice()};
 document.querySelectorAll("[data-x]").forEach(c=>c.onchange=()=>{lead[c.dataset.x]=c.checked;renderPrice()});
 $("bova").onchange=()=>{lead.bova=$("bova").value;renderPrice()};
 $("pick").onchange=e=>{const s=e.target.closest("select[data-sel]");if(s&&s.value){sel.push(s.value);renderPick()}};
@@ -273,7 +273,7 @@ $("save").onclick=async()=>{
     let lt="";
     if(lon(lead)){lt=leadTxt(lead);await db.collection("lead").add({holder:name,trip,kind,since:Date.now(),status:"out",days,due,batch,belt:lead.belt,w25:lead.w25,w2:lead.w2,w1:lead.w1,gloves:!!lead.gloves,pad:!!lead.pad,vre:!!lead.vre,kom:!!lead.kom,lam:!!lead.lam,bova:lead.bova||"",boca:!!lead.boca})}
     await db.collection("log").add(Object.assign({ts:batch,batch,name,action:"izdano",codes,lead:lt,trip,kind,days,due,price,leadObj:lt?JSON.parse(JSON.stringify(lead)):null},fo?{free:true,freeWhy:why,saved:full}:{}));
-    sel=[];lead={belt:false,w25:0,w2:0,w1:0};$("belt").value="0";document.querySelectorAll("[data-x]").forEach(c=>c.checked=false);$("bova").value="";$("who").value="";$("free").checked=false;$("freewhy").value="";renderPick();renderLead();renderSugg();
+    sel=[];lead={belt:false,w25:0,w2:0,w1:0};beltManual=false;$("belt").value="0";document.querySelectorAll("[data-x]").forEach(c=>c.checked=false);$("bova").value="";$("who").value="";$("free").checked=false;$("freewhy").value="";renderPick();renderLead();renderSugg();
     toast("Posuđeno: "+name+" · "+codes.length+" "+(codes.length===1?"komad":"komada")+(lt?" + olovo":""),"Vraća do "+new Date(due+"T00:00:00").toLocaleDateString("hr",{weekday:"long",day:"numeric",month:"numeric"})+" · "+(kind==="izlet"?(fo?"besplatno":"naplatiti "+fm(price)):kindTxt(kind)));
     say("Spremljeno za "+name+" ("+(kind==="izlet"?(fo?"besplatno – "+why:"naplatiti "+fm(price)):kindTxt(kind))+").");
   }catch(e){say("Greška pri spremanju ("+(e.code||"?")+"). Provjeri imaš li pravo uređivanja.")}
@@ -996,7 +996,7 @@ function pickItems(ns){
   return {added,missing};
 }
 function applyLead(lo){
-  lead=Object.assign({belt:false,w25:0,w2:0,w1:0},lo);
+  lead=Object.assign({belt:false,w25:0,w2:0,w1:0},lo);beltManual=true;
   $("belt").value=lead.belt?"1":"0";
   document.querySelectorAll("[data-x]").forEach(c=>c.checked=!!lead[c.dataset.x]);
   $("bova").value=lead.bova||"";
