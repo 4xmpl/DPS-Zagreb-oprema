@@ -313,7 +313,7 @@ function eqPanel(f){
     '<div class="mu" style="margin-top:12px">Olovo i ostalo</div>'+lw+
     '<select data-eqbelt style="margin-bottom:8px"><option value="0"'+(L.belt?"":" selected")+'>Samo olova (bez pojasa)</option><option value="1"'+(L.belt?" selected":"")+'>Olova + pojas</option></select>'+
     EQX.map(x=>'<label class="row" style="margin-bottom:6px"><input type="checkbox" data-eqx="'+x[0]+'" style="width:22px;height:22px;flex:none"'+(L[x[0]]?" checked":"")+'> '+x[1]+'</label>').join("")+
-    '<input data-eb placeholder="Deco bova (opis, ako treba)" value="'+esc(L.bova||"")+'" style="margin:4px 0 8px"><button class="b" data-eqlead>Spremi olovo i ostalo</button>'+
+    '<div class="mu">Deco bova</div><select data-eb style="margin:4px 0 8px"><option value=""'+(L.bova?"":" selected")+'>Ne uzima deco bovu</option><option value="bez"'+(L.bova==="bez"?" selected":"")+'>Bez reela</option><option value="s"'+(L.bova==="s"?" selected":"")+'>S reelom</option></select><button class="b" data-eqlead>Spremi olovo i ostalo</button>'+
     '<div class="mu" style="margin-top:8px">Cijena se preračuna sama. Ako je već plaćeno, a cijena se promijeni, to ti javim.</div></div>';
 }
 async function eqSync(b,codes,newLead){
@@ -398,8 +398,8 @@ function renderRets(){
     (Object.keys(g).length?'<div class="card mu">Nema osobe koja odgovara pretrazi.</div>':'<div class="card mu">Trenutno ništa nije posuđeno.</div>');
   $("log").innerHTML=logs.length?'<div class="card"><h2>Zadnje aktivnosti</h2>'+logs.slice(0,10).map(l=>'<div class="mu">'+new Date(l.ts).toLocaleDateString("hr")+' · '+esc(l.name)+' · '+esc(l.action)+' ('+(l.codes.length+(l.lead?1:0))+')</div>').join("")+'</div>':"";
 }
-$("rets").onchange=e=>{if(eq){const d=e.target.dataset;if(d.eqbelt!=null){eq.manual=true;eq.lead.belt=e.target.value==="1";return}if(d.eqx!=null){eq.lead[d.eqx]=e.target.checked;return}if(d.eqsel!=null)return}if(e.target.dataset.r)rsel[e.target.dataset.r]=e.target.checked;if(e.target.dataset.dm){dsel[e.target.dataset.dm]=e.target.checked;renderRets()}if(e.target.dataset["do"]!=null)dout[e.target.dataset["do"]]=e.target.checked;if(e.target.dataset.dc!=null){dchg[e.target.dataset.dc]=e.target.checked;renderRets()}};
-$("rets").oninput=e=>{if(eq&&e.target.dataset.eb!=null){eq.lead.bova=e.target.value;return}const k=e.target.dataset.dd;if(k!=null)ddesc[k]=e.target.value;const v=e.target.dataset.dv;if(v!=null)dvs[v]=e.target.value;const f=e.target.dataset.df;if(f!=null)dfee[f]=e.target.value};
+$("rets").onchange=e=>{if(eq){const d=e.target.dataset;if(d.eqbelt!=null){eq.manual=true;eq.lead.belt=e.target.value==="1";return}if(d.eqx!=null){eq.lead[d.eqx]=e.target.checked;return}if(d.eqsel!=null)return;if(d.eb!=null){eq.lead.bova=e.target.value;return}}if(e.target.dataset.r)rsel[e.target.dataset.r]=e.target.checked;if(e.target.dataset.dm){dsel[e.target.dataset.dm]=e.target.checked;renderRets()}if(e.target.dataset["do"]!=null)dout[e.target.dataset["do"]]=e.target.checked;if(e.target.dataset.dc!=null){dchg[e.target.dataset.dc]=e.target.checked;renderRets()}};
+$("rets").oninput=e=>{const k=e.target.dataset.dd;if(k!=null)ddesc[k]=e.target.value;const v=e.target.dataset.dv;if(v!=null)dvs[v]=e.target.value;const f=e.target.dataset.df;if(f!=null)dfee[f]=e.target.value};
 $("retq").oninput=e=>{retQ=e.target.value.trim();renderRets()};
 $("rets").onclick=async e=>{
   {const tg=e.target.closest("[data-rtg]");if(tg){const n=tg.dataset.rtg;retOpen[n]=!retOpen[n];renderRets();return}}
@@ -794,7 +794,7 @@ $("add").onclick=async()=>{
   const p=$("a-type").value,q=Math.max(1,Math.min(50,parseInt($("a-qty").value)||1)),size=$("a-size").value.trim();
   const ex={};$("a-ex").querySelectorAll("[data-f]").forEach(x=>ex[x.dataset.f]=x.value.trim());ex.dives=Number(ex.dives)||0;ex.buy=Number(ex.buy)||0;
   const fchk=$("a-fin").checked&&ex.buy>0;if(fchk&&!ex.bought)ex.bought=todayIso();
-  const pre=($("a-pre").value.trim().toUpperCase().replace(/[^A-Z0-9ČĆŽŠĐ]/g,""))||p;
+  const pre=($("a-pre").value.trim().toUpperCase().replace(/[ČĆ]/g,"C").replace(/Ž/g,"Z").replace(/Š/g,"S").replace(/Đ/g,"D").replace(/[^A-Z0-9]/g,""))||p;
   const used=items.filter(i=>i.id.startsWith(pre)&&/^\d+$/.test(i.id.slice(pre.length))).map(i=>parseInt(i.id.slice(pre.length)));
   const st=parseInt($("a-start").value);
   let n=(st>0?st:Math.max(0,...used)+1)-1;
