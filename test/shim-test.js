@@ -37,13 +37,13 @@
   }
   function fire(col) { (subs[col] || []).forEach(function (s) { try { s.cb(snap(col, s)); } catch (e) { console.error(e); } }); }
   function clean(o) { return JSON.parse(JSON.stringify(o == null ? {} : o)); }
-  function write(col, op, id, d, merge) {
+  function write(col, op, id, d, merge, cond) {
     return Promise.resolve().then(function () {
       if (COLS.indexOf(col) < 0) throw Object.assign(new Error("col"), { code: "col" });
       data[col] = data[col] || {};
       if (op === "add") id = Date.now().toString(36) + Math.random().toString(16).slice(2, 10);
       if (op === "delete") delete data[col][id];
-      else if (op === "update") { if (!data[col][id]) throw Object.assign(new Error("Dokument ne postoji."), { code: "Dokument ne postoji." }); Object.assign(data[col][id], clean(d)); }
+      else if (op === "update") { if (!data[col][id]) throw Object.assign(new Error("Dokument ne postoji."), { code: "Dokument ne postoji." }); if (cond && cond.ifStatus !== undefined && data[col][id].status !== cond.ifStatus) throw Object.assign(new Error("zauzeto"), { code: "zauzeto" }); Object.assign(data[col][id], clean(d)); }
       else if (op === "set" && merge) data[col][id] = Object.assign({}, data[col][id] || {}, clean(d));
       else data[col][id] = clean(d);
       save(); fire(col); return { id: id };
@@ -55,7 +55,7 @@
     return function () { subs[col] = subs[col].filter(function (x) { return x !== s; }); };
   }
   function docRef(col, id) {
-    return { set: function (d, o) { return write(col, "set", id, d, o && o.merge); }, update: function (d) { return write(col, "update", id, d); }, delete: function () { return write(col, "delete", id); }, onSnapshot: function (cb, err) { return sub(col, id, cb, err); } };
+    return { set: function (d, o) { return write(col, "set", id, d, o && o.merge); }, update: function (d, cond) { return write(col, "update", id, d, false, cond); }, delete: function () { return write(col, "delete", id); }, onSnapshot: function (cb, err) { return sub(col, id, cb, err); } };
   }
   var db = {
     collection: function (col) { return { doc: function (id) { return docRef(col, id); }, add: function (d) { return write(col, "add", null, d); }, onSnapshot: function (cb, err) { return sub(col, null, cb, err); } }; },

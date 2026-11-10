@@ -5,7 +5,10 @@ const COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "sto
 const DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt", "spare", "fin"]; // zamjenik ne smije pisati
 const DEPUTY_NO_READ = ["fin"]; // zamjenik ne smije čitati financije
 const DEPUTY_LOG_LOCKED = ["free", "freeWhy", "saved", "dmgFee", "dmgCharged", "dmgTs"]; // samo vlasnik: besplatno i naplata štete
+const DEPUTY_ITEM_LOCKED = ["buy", "bought"]; // nabavna cijena: samo vlasnik
+const DEPUTY_LOG_UPDATE = ["paid", "paidTs"]; // zamjenik na postojećem zapisu smije samo označiti plaćeno
 const DAYS = 120;
+const FAIL_WINDOW = 15 * 60e3, FAIL_IP = 8;
 
 function envp(k) {
   let v; try { v = Netlify.env.get(k); } catch (e) {}
@@ -43,19 +46,27 @@ async function readToken(h) {
 const same = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y); };
 
 async function login(pin, ip) {
-  const m = meta(), key = "fail-" + String(ip || "x").replace(/[^0-9a-f:.]/gi, "");
-  const f = (await m.get(key, { type: "json" })) || { n: 0, t: Date.now() };
-  if (Date.now() - f.t > 15 * 60e3) { f.n = 0; f.t = Date.now(); }
-  if (f.n >= 8) return { status: 429, body: { error: "Previše pokušaja. Pričekaj 15 minuta." } };
+  // Svaki pokušaj se zapiše PRIJE provjere PIN-a (svaki u svoj zapis, pa paralelni zahtjevi ne mogu preskočiti brojanje).
+  const m = meta(), now = Date.now(), ipk = String(ip || "x").replace(/[^0-9a-f:.]/gi, "");
+  const mine = "try-" + ipk + "-", mykey = mine + now + "-" + randomBytes(3).toString("hex");
+  await m.set(mykey, "1");
+  const { blobs } = await m.list({ prefix: "try-" });
+  let nIp = 0; const stale = [], mineKeys = [];
+  for (const b of blobs) {
+    const t = Number(b.key.split("-")[2]);
+    if (!(t > now - FAIL_WINDOW)) { stale.push(b.key); continue; }
+    if (b.key.startsWith(mine)) { nIp++; mineKeys.push(b.key); }
+  }
+  await Promise.all(stale.slice(0, 40).map(k => m.delete(k)));
+  if (nIp > FAIL_IP) return { status: 429, body: { error: "Previše pokušaja. Pričekaj 15 minuta." } };
   const own = envp("OWNER_PIN"), dep = envp("DEPUTY_PIN");
   let role = null;
   if (own && same(pin, own)) role = "owner"; else if (dep && same(pin, dep)) role = "deputy";
   if (!role) {
-    f.n++; await m.setJSON(key, f);
     await new Promise(r => setTimeout(r, 500));
     return { status: 401, body: { error: "Pogrešan PIN." } };
   }
-  if (f.n) await m.delete(key);
+  await Promise.all(mineKeys.map(k => m.delete(k)));
   return { status: 200, body: { role, token: await makeToken(role) } };
 }
 
@@ -102,19 +113,33 @@ export default async (req, context) => {
 
     if (["set", "update", "delete", "add"].includes(b.op)) {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
-      if (role === "deputy" && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || (b.op === "set" && b.col === "items")))
+      // zamjenik: samo ono što mu sučelje nudi (izdavanje, povrat, označavanje plaćenog, plan)
+      if (role === "deputy" && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || (b.op === "set" && b.col !== "plans") || (b.op === "add" && b.col === "items")))
         return NOPE();
-      const body = clean(b.data);
-      if (role === "deputy" && b.col === "log") DEPUTY_LOG_LOCKED.forEach(k => delete body[k]);
+      let body = clean(b.data);
+      if (role === "deputy" && b.col === "log") {
+        DEPUTY_LOG_LOCKED.forEach(k => delete body[k]);
+        if (b.op === "update") body = Object.fromEntries(Object.entries(body).filter(([k]) => DEPUTY_LOG_UPDATE.includes(k)));
+      }
+      if (role === "deputy" && b.col === "items") DEPUTY_ITEM_LOCKED.forEach(k => delete body[k]);
       let id = b.id;
       if (b.op === "add") id = Date.now().toString(36) + randomBytes(4).toString("hex");
       if (!okId(id)) return json({ error: "id" }, 400);
       const key = b.col + "/" + id;
       if (b.op === "delete") await s.delete(key);
       else if (b.op === "update") {
-        const cur = await s.get(key, { type: "json" });
-        if (cur == null) return json({ error: "Dokument ne postoji." }, 404);
-        await s.setJSON(key, Object.assign({}, cur, body));
+        if (b.ifStatus !== undefined) {
+          // uvjetno pisanje: uspije samo ako je status još takav kakav je klijent očekivao (dva uređaja ne mogu izdati isti komad)
+          const g = await s.getWithMetadata(key, { type: "json" });
+          if (!g || g.data == null) return json({ error: "Dokument ne postoji." }, 404);
+          if (g.data.status !== b.ifStatus) return json({ error: "zauzeto" }, 409);
+          const w = await s.setJSON(key, Object.assign({}, g.data, body), { onlyIfMatch: g.etag });
+          if (w && w.modified === false) return json({ error: "zauzeto" }, 409);
+        } else {
+          const cur = await s.get(key, { type: "json" });
+          if (cur == null) return json({ error: "Dokument ne postoji." }, 404);
+          await s.setJSON(key, Object.assign({}, cur, body));
+        }
       } else if (b.op === "set" && b.merge) {
         const cur = (await s.get(key, { type: "json" })) || {};
         await s.setJSON(key, Object.assign({}, cur, body));
@@ -127,8 +152,10 @@ export default async (req, context) => {
 
     if (b.op === "export") {
       const out = {}; for (const c of COLS) { out[c] = {}; (await listCol(c)).forEach(d => (out[c][d.id] = d.data)); }
+      await meta().set("lastExport", String(Date.now()));
       return json({ export: out });
     }
+    if (b.op === "info") return json({ backup: Number(await meta().get("lastExport")) || 0 });
     if (b.op === "import") {
       let n = 0;
       for (const c of COLS) {

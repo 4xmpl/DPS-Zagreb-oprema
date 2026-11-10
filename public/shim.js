@@ -49,7 +49,11 @@
     });
   }
   var didStart = false;
-  function started() { if (!didStart) { didStart = true; resolveReady(); } setupSettings(); }
+  function backupInfo() {
+    if (role !== "owner") return;
+    api({ op: "info" }).then(function (j) { window.dpsBackupAt = j.backup || 0; document.dispatchEvent(new Event("dps-backup")); }).catch(function () {});
+  }
+  function started() { if (!didStart) { didStart = true; resolveReady(); backupInfo(); } setupSettings(); }
   function boot() {
     if (!token) return showLogin();
     api({ op: "ver" }).then(function (j) { role = j.role; started(); }).catch(function (e) {
@@ -71,8 +75,9 @@
     }).then(function () { delete inflight[col]; });
     return inflight[col];
   }
-  function write(col, op, id, data, merge) {
+  function write(col, op, id, data, merge, cond) {
     var body = { op: op, col: col }; if (id) body.id = id; if (data !== undefined) body.data = data; if (merge) body.merge = true;
+    if (cond && cond.ifStatus !== undefined) body.ifStatus = cond.ifStatus;
     return ready.then(function () { return api(body); }).then(function (j) { return fetchCol(col).then(function () { return { id: j.id }; }); });
   }
   function sub(col, id, cb, err) {
@@ -83,7 +88,7 @@
   function docRef(col, id) {
     return {
       set: function (d, o) { return write(col, "set", id, d, o && o.merge); },
-      update: function (d) { return write(col, "update", id, d); },
+      update: function (d, cond) { return write(col, "update", id, d, false, cond); },
       delete: function () { return write(col, "delete", id); },
       onSnapshot: function (cb, err) { return sub(col, id, cb, err); }
     };
@@ -142,7 +147,7 @@
     document.getElementById("dpslo").onclick = function () { dropToken(); location.reload(); };
     if (role === "owner") {
       document.getElementById("dpsbk").onclick = function () {
-        api({ op: "export" }).then(function (j) { return dl.save({ filename: "dps-oprema-kopija-" + new Date().toISOString().slice(0, 10) + ".json", data: new Blob([JSON.stringify(j.export)], { type: "application/json" }) }); }).catch(function () { msg("Kopija nije uspjela."); });
+        api({ op: "export" }).then(function (j) { return dl.save({ filename: "dps-oprema-kopija-" + new Date().toISOString().slice(0, 10) + ".json", data: new Blob([JSON.stringify(j.export)], { type: "application/json" }) }); }).then(function () { window.dpsBackupAt = Date.now(); document.dispatchEvent(new Event("dps-backup")); }).catch(function () { msg("Kopija nije uspjela."); });
       };
       var f = document.getElementById("dpsfile");
       document.getElementById("dpsim").onclick = function () { f.click(); };
