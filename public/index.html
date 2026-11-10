@@ -298,7 +298,7 @@ $("ov").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;const nb=
 let retOpen={},retQ="",eq=null;
 const EQX=[["gloves","Rukavice"],["pad","Padobran"],["vre","Vreća za opremu"],["kom","Kompas"],["lam","Lampa"],["boca","Boca"]];
 const pickLead=o=>{o=o||{};const r={belt:!!o.belt,w25:o.w25||0,w2:o.w2||0,w1:o.w1||0,bova:o.bova||""};EQX.forEach(x=>r[x[0]]=!!o[x[0]]);return r};
-const eqBtn=f=>f.batch?'<button class="b g st" data-eq="'+f.batch+'" style="margin-bottom:6px">'+(eq&&eq.b===f.batch?"Zatvori uređivanje":"✏️ Uredi opremu")+'</button>':"";
+const eqBtn=f=>f.batch?'<div style="margin-bottom:6px"><button class="b g" data-eq="'+f.batch+'">'+(eq&&eq.b===f.batch?"Zatvori uređivanje":"✏️ Uredi opremu")+'</button></div>':"";
 function eqPanel(f){
   if(!eq||eq.b!==f.batch)return "";
   const held=entries().filter(x=>x.batch===f.batch&&!x.lead),L=eq.lead;
@@ -306,7 +306,7 @@ function eqPanel(f){
   const opts=TYPES.map(t=>{const l=fr.filter(i=>i.type===t[0]);return l.length?'<optgroup label="'+esc(t[1])+'">'+l.map(i=>'<option value="'+esc(i.id)+'">'+esc(lbl(i))+'</option>').join("")+'</optgroup>':""}).join("");
   const lw=LW.map(w=>'<div class="row" style="justify-content:space-between;margin-bottom:6px"><b>'+kg(w[1])+' kg</b><span class="row"><button class="b g st" data-eqd="-1" data-eqw="'+w[0]+'">−</button><span class="cnt">'+(L[w[0]]||0)+'</span><button class="b g st" data-eqd="1" data-eqw="'+w[0]+'">+</button></span></div>').join("");
   return '<div class="msg" style="margin:8px 0;background:var(--bg)"><b>Uređivanje izdane opreme</b>'+
-    '<div class="mu" style="margin-top:6px">Komadi koje osoba ima</div>'+(held.length?held.map(x=>'<div class="row" style="justify-content:space-between;margin:4px 0"><span>'+esc(x.t)+'</span><button class="b r st" data-eqrm="'+esc(x.k)+'" style="flex:none">Makni</button></div>').join(""):'<div class="mu">—</div>')+
+    '<div class="mu" style="margin-top:6px">Komadi koje osoba ima</div>'+(held.length?held.map(x=>'<div class="row" style="justify-content:space-between;margin:4px 0"><span>'+esc(x.t)+'</span><button class="b r" data-eqrm="'+esc(x.k)+'" style="flex:none">Makni</button></div>').join(""):'<div class="mu">—</div>')+
     '<div class="mu" style="margin-top:10px">Dodaj komad</div><div class="row"><select data-eqsel><option value="">— odaberi slobodan komad —</option>'+opts+'</select><button class="b" data-eqadd style="flex:none">Dodaj</button></div>'+
     '<div class="mu" style="margin-top:12px">Olovo i ostalo</div>'+lw+
     '<select data-eqbelt style="margin-bottom:8px"><option value="0"'+(L.belt?"":" selected")+'>Samo olova (bez pojasa)</option><option value="1"'+(L.belt?" selected":"")+'>Olova + pojas</option></select>'+
