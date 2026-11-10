@@ -297,6 +297,7 @@ function renderOv(){
 }
 $("ov").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;const nb=document.querySelector('nav [data-t="'+b.dataset.go+'"]');if(nb&&getComputedStyle(nb).display!=="none")nb.click()};
 let retOpen={},retQ="",eq=null;
+const ns=t=>String(t||"").toLowerCase().replace(/đ/g,"d").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 const EQX=[["gloves","Rukavice"],["pad","Padobran"],["vre","Vreća za opremu"],["kom","Kompas"],["lam","Lampa"],["boca","Boca"]];
 const pickLead=o=>{o=o||{};const r={belt:!!o.belt,w25:o.w25||0,w2:o.w2||0,w1:o.w1||0,bova:o.bova||""};EQX.forEach(x=>r[x[0]]=!!o[x[0]]);return r};
 const eqBtn=f=>f.batch?'<div style="margin-bottom:6px"><button class="b g" data-eq="'+f.batch+'">'+(eq&&eq.b===f.batch?"Zatvori uređivanje":"Uredi opremu")+'</button></div>':"";
@@ -379,7 +380,7 @@ function renderRets(){
   renderLate();
   const g={};entries().forEach(x=>(g[x.holder]=g[x.holder]||[]).push(x));
   const inf={};Object.keys(g).forEach(n=>inf[n]=retInfo(g[n]));
-  const names=Object.keys(g).filter(n=>!retQ||norm(n).includes(norm(retQ))).sort((a,b)=>(inf[b].late-inf[a].late)||((inf[a].due?inf[a].due.getTime():9e15)-(inf[b].due?inf[b].due.getTime():9e15))||a.localeCompare(b,"hr"));
+  const names=Object.keys(g).filter(n=>!retQ||ns(n).includes(ns(retQ))).sort((a,b)=>(inf[b].late-inf[a].late)||((inf[a].due?inf[a].due.getTime():9e15)-(inf[b].due?inf[b].due.getTime():9e15))||a.localeCompare(b,"hr"));
   const bprice=b=>{if(!b)return null;const l=logs.find(x=>x.action==="izdano"&&x.batch===b);return l?(l.price||0):null};
   $("rets").innerHTML=names.length?names.map(n=>{
     const bs={};g[n].forEach(x=>{const k=x.batch||"0";(bs[k]=bs[k]||[]).push(x)});
