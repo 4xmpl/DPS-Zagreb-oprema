@@ -7,19 +7,20 @@
 <link rel="icon" href="favicon.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
---bg:#f4f7fa;--card:#fff;--tx:#12202e;--mu:#5d6f80;--ac:#0a6fa8;--ac2:#e3f1fa;--bd:#d5dee7;--ok:#1d8a4e;--wa:#b86a00;--er:#c0392b}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1620;--card:#172432;--tx:#e8eff5;--mu:#93a6b8;--ac:#4aa8e0;--ac2:#1c3347;--bd:#2a3b4c;--ok:#4cc783;--wa:#e8a23d;--er:#ef7b6e}}
-:root[data-theme="dark"]{--bg:#0e1620;--card:#172432;--tx:#e8eff5;--mu:#93a6b8;--ac:#4aa8e0;--ac2:#1c3347;--bd:#2a3b4c;--ok:#4cc783;--wa:#e8a23d;--er:#ef7b6e}
+--bg:#f1f4f7;--card:#fff;--tx:#14212e;--mu:#5b6b7a;--ac:#0b5f94;--ac2:#e4eef6;--bd:#d8e0e8;--ok:#1b7a47;--wa:#9a5d0a;--er:#b03a2e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1620;--card:#162331;--tx:#e8eff5;--mu:#93a6b8;--ac:#5aaee3;--ac2:#1c3347;--bd:#2a3b4c;--ok:#52c088;--wa:#dc9c3f;--er:#e9806f}}
+:root[data-theme="dark"]{--bg:#0e1620;--card:#162331;--tx:#e8eff5;--mu:#93a6b8;--ac:#5aaee3;--ac2:#1c3347;--bd:#2a3b4c;--ok:#52c088;--wa:#dc9c3f;--er:#e9806f}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*:before,*:after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.ic{width:1.45rem;height:1.45rem;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block}
 main{max-width:720px;margin:0 auto;padding:12px 12px 84px}
 h1{font-size:1.2rem;margin:0}
-.top{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px}
-.gear{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;width:42px;height:42px;font-size:1.2rem;padding:0}
+.top{display:flex;align-items:center;justify-content:space-between;margin:2px 0 12px;padding-bottom:10px;border-bottom:1px solid var(--bd)}
+.gear{border:1px solid var(--bd);background:var(--card);color:var(--mu);border-radius:10px;width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center}
 #setp{margin-bottom:10px}
 .seg{display:flex;gap:6px}.seg button{flex:1;padding:9px 4px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;font:inherit;font-size:.85rem}.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
-h2{font-size:1rem;margin:0 0 8px}
+h2{font-size:1rem;font-weight:650;letter-spacing:.005em;margin:0 0 8px}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;width:min(92vw,520px);background:var(--ok);color:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 6px 24px rgba(0,0,0,.28);font-size:1rem;line-height:1.35;cursor:pointer}
 #toast b{display:block;font-size:1.05rem}#toast span{display:block;font-size:.9rem;opacity:.95;margin-top:2px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #toast{color:#06210f}}
@@ -27,24 +28,24 @@ h2{font-size:1rem;margin:0 0 8px}
 nav{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
 nav::-webkit-scrollbar{display:none}
 nav button{flex:1 1 0;min-width:48px;max-width:100px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;border:0;background:none;color:var(--mu);border-radius:10px;font:inherit;font-weight:600;font-size:.62rem}
-nav button i{font-style:normal;font-size:1.3rem;line-height:1.2}
+nav button i{font-style:normal;display:block;line-height:0;padding:2px 0}nav button.on .ic{stroke-width:2.1}
 nav button.on{background:var(--ac2);color:var(--ac)}
 nav #moreb{position:fixed;left:6px;right:6px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:21;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px;background:var(--card);border:1px solid var(--bd);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 nav #moreb.hide{display:none}
 nav #moreb button{max-width:none}
 .ov{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
-.ov button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;padding:8px 2px;font:inherit;text-align:center}
-.ov b{display:block;font-size:1.35rem;line-height:1.1}.ov span{font-size:.7rem;color:var(--mu)}
+.ov button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:12px;padding:10px 2px;box-shadow:0 1px 2px rgba(15,30,45,.05);font:inherit;text-align:center}
+.ov b{display:block;font-size:1.4rem;font-weight:700;line-height:1.1}.ov span{font-size:.7rem;color:var(--mu);letter-spacing:.02em}
 .ov .z b{color:var(--mu)}.ov .w b{color:var(--wa)}.ov .e b{color:var(--er)}.ov .g b{color:var(--ok)}
 .bar{height:8px;border-radius:99px;background:var(--bd);overflow:hidden;margin:6px 0 10px}.bar i{display:block;height:100%;background:var(--ok)}
 .pg{display:grid;grid-template-columns:1fr 1fr;gap:10px 8px}
 .pg>div{min-width:0}.pg h3{font-size:.85rem;margin:0 0 4px;color:var(--mu);font-weight:600}
 @media (max-width:340px){.pg{grid-template-columns:1fr}}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(15,30,45,.05)}
 input,select{width:100%;padding:11px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
 .row{display:flex;gap:8px;align-items:center}
 .row>*{min-width:0}
-button.b{padding:11px 14px;border:0;border-radius:8px;background:var(--ac);color:#fff;font:inherit;font-weight:600}
+button.b{padding:11px 16px;min-height:44px;border:0;border-radius:10px;background:var(--ac);color:#fff;font:inherit;font-weight:600}
 button.b.g{background:var(--ac2);color:var(--ac)}
 button.b.r{background:transparent;color:var(--er);padding:6px 8px}
 button.st{width:44px;height:44px;font-size:1.3rem;padding:0}
@@ -76,23 +77,23 @@ body.simple nav [data-t="pay"],body.simple nav #morebtn,body.simple nav #moreb,b
 </head>
 <body class="simple">
 <main>
-<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="logo.png" alt="DPS Zagreb" style="height:30px;width:auto"><span class="mu" style="font-size:.95rem;font-weight:600">oprema</span></h1><button class="gear" id="gear" aria-label="Postavke">⚙️</button></div>
+<div class="top"><h1 style="display:flex;align-items:center;gap:10px"><img src="logo.png" alt="DPS Zagreb" style="height:30px;width:auto"><span class="mu" style="font-size:.95rem;font-weight:600">oprema</span></h1><button class="gear" id="gear" aria-label="Postavke"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg></button></div>
 <div id="setp" class="card hide"><h2>Izgled</h2><div class="seg" id="theme"><button data-th="">Automatski</button><button data-th="light">Svijetlo</button><button data-th="dark">Tamno</button></div>
 <label id="simplew" class="row mu hide" style="margin-top:12px"><input type="checkbox" id="simple" style="width:20px;height:20px;flex:none"> Jednostavan prikaz (kako ga vidi zamjenik)</label><div class="mu" style="margin-top:12px">Verzija: 18.10.2026. (servis, financije, statistika)</div></div>
 <div class="ov" id="ov"></div>
 <div id="spov" class="own spov"></div>
 <div id="msg"></div>
 <nav id="nav">
-<button data-t="out" class="on"><i>➕</i>Izdavanje</button>
-<button data-t="ret"><i>↩️</i>Povrat</button>
-<button data-t="pay"><i>💶</i>Naplata</button>
-<button data-t="his"><i>🕘</i>Povijest</button>
-<button id="morebtn" type="button"><i>⋯</i>Više</button>
+<button data-t="out" class="on"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></i>Izdavanje</button>
+<button data-t="ret"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></i>Povrat</button>
+<button data-t="pay"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7a6 6 0 1 0 0 10"/><path d="M4 10h9M4 14h9"/></svg></i>Naplata</button>
+<button data-t="his"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></i>Povijest</button>
+<button id="morebtn" type="button"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg></i>Više</button>
 <div id="moreb" class="hide">
-<button data-t="inv"><i>📦</i>Inventar</button>
-<button data-t="plan"><i>📅</i>Plan</button>
-<button data-t="stat"><i>📊</i>Statistika</button>
-<button data-t="fin"><i>💰</i>Financije</button>
+<button data-t="inv"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg></i>Inventar</button>
+<button data-t="plan"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></i>Plan</button>
+<button data-t="stat"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></i>Statistika</button>
+<button data-t="fin"><i><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.1"/></svg></i>Financije</button>
 </div>
 </nav>
 
@@ -198,7 +199,7 @@ let spares=[],fins=[],isOwner=false,statYear="",spFix=null,dchg={},dfee={},finYe
 const isFreeKind=k=>k==="eko"||k==="tecaj";
 const logOf=b=>b?logs.find(x=>x.action==="izdano"&&x.batch===b):null;
 const hrDate=iso=>iso?new Date(iso+"T00:00:00").toLocaleDateString("hr"):"";
-const noteLine=x=>(x.rem||x.note)?'<div class="mu" style="width:100%;padding-left:32px">'+(x.rem?"📝 "+esc(x.rem):"")+(x.rem&&x.note?" · ":"")+(x.note?'<span class="sv">'+esc(x.note)+'</span>':"")+'</div>':"";
+const noteLine=x=>(x.rem||x.note)?'<div class="mu" style="width:100%;padding-left:32px">'+(x.rem?"Napomena: "+esc(x.rem):"")+(x.rem&&x.note?" · ":"")+(x.note?'<span class="sv">'+esc(x.note)+'</span>':"")+'</div>':"";
 const frTxt=(x,fr)=>fr?(x.free?"0 € – besplatno"+(x.freeWhy?'<br><span style="color:#555">'+esc(x.freeWhy)+'</span>':""):"besplatno"):fm(x.price||0)+(x.paid?" ✓":"");
 let toastT=null;
 function toast(title,sub){
@@ -244,7 +245,7 @@ function renderPick(){
     const free=items.filter(i=>i.type===p&&i.status==="in"&&!sel.includes(i.id)).sort(byCode);
     return '<div><h3>'+n+'</h3><div>'+mine.map(c=>'<span class="chip">'+esc(lbl(items.find(i=>i.id===c))+svcOpt(items.find(i=>i.id===c)))+'<button data-rm="'+c+'">✕</button></span>').join("")+'</div>'+mine.map(c=>{const t=items.find(i=>i.id===c);return t&&(t.rem||t.note)?'<div class="mu sv" style="font-size:.8rem;margin-top:2px">'+esc(t.id+": "+[t.rem,t.note].filter(Boolean).join(" · "))+'</div>':""}).join("")+
       '<div class="row" style="margin-top:4px"><select data-sel="'+p+'"><option value="">'+(free.length?"Odaberi ("+free.length+")":"nema slobodnih")+'</option>'+
-      free.map(i=>'<option value="'+i.id+'">'+esc(lbl(i)+(det(i)?" – "+det(i):"")+(i.rem?" 📝 "+i.rem:"")+(i.note?" ⚠ "+i.note:"")+svcOpt(i))+'</option>').join("")+'</select></div></div>';
+      free.map(i=>'<option value="'+i.id+'">'+esc(lbl(i)+(det(i)?" – "+det(i):"")+(i.rem?" · napomena: "+i.rem:"")+(i.note?" ⚠ "+i.note:"")+svcOpt(i))+'</option>').join("")+'</select></div></div>';
   }).join("")+'</div></div>';
 }
 function renderLead(){
@@ -298,7 +299,7 @@ $("ov").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;const nb=
 let retOpen={},retQ="",eq=null;
 const EQX=[["gloves","Rukavice"],["pad","Padobran"],["vre","Vreća za opremu"],["kom","Kompas"],["lam","Lampa"],["boca","Boca"]];
 const pickLead=o=>{o=o||{};const r={belt:!!o.belt,w25:o.w25||0,w2:o.w2||0,w1:o.w1||0,bova:o.bova||""};EQX.forEach(x=>r[x[0]]=!!o[x[0]]);return r};
-const eqBtn=f=>f.batch?'<div style="margin-bottom:6px"><button class="b g" data-eq="'+f.batch+'">'+(eq&&eq.b===f.batch?"Zatvori uređivanje":"✏️ Uredi opremu")+'</button></div>':"";
+const eqBtn=f=>f.batch?'<div style="margin-bottom:6px"><button class="b g" data-eq="'+f.batch+'">'+(eq&&eq.b===f.batch?"Zatvori uređivanje":"Uredi opremu")+'</button></div>':"";
 function eqPanel(f){
   if(!eq||eq.b!==f.batch)return "";
   const held=entries().filter(x=>x.batch===f.batch&&!x.lead),L=eq.lead;
@@ -741,10 +742,10 @@ function rowHtml(i){
   if(svId===i.id)return svForm(i.id);
   if(editId===i.id)return '<div class="it" style="display:block"><b>'+esc(i.id)+'</b><input data-f="size" placeholder="Veličina / napomena" value="'+esc(i.size)+'" style="margin:6px 0 8px">'+inputs(i.type,i)+
     '<div class="row"><button class="b" data-sv2="'+i.id+'">Spremi</button><button class="b g" data-cx="1">Odustani</button></div></div>';
-  return '<div class="it s-'+(i.status==="in"?(svc(i).st==="due"?"due":"in"):i.status)+'"><span class="n">'+esc(lbl(i))+(det(i)?'<br><span class="mu">'+esc(det(i))+'</span>':"")+'<br><span class="'+(svc(i).st==="due"?"sv":svc(i).st==="soon"?"out":"mu")+'">'+esc(svcTxt(i))+(svc(i).st==="due"?" ⚠ TREBA SERVIS ("+esc(svc(i).why)+")":svc(i).st==="soon"?" · uskoro servis":"")+'</span>'+(i.rem?'<br><span class="mu">📝 '+esc(i.rem)+'</span>':"")+(i.bought||i.buy?'<br><span class="mu">nabavljeno '+(i.bought?esc(hrDate(i.bought)):"")+(i.buy?(i.bought?" · ":"")+fm(i.buy):"")+'</span>':"")+svHist(i)+(i.note?'<br><span class="sv">'+esc(i.note)+'</span>':"")+(i.status==="out"?'<br><span class="mu">'+esc(i.holder)+'</span>':"")+'</span>'+
+  return '<div class="it s-'+(i.status==="in"?(svc(i).st==="due"?"due":"in"):i.status)+'"><span class="n">'+esc(lbl(i))+(det(i)?'<br><span class="mu">'+esc(det(i))+'</span>':"")+'<br><span class="'+(svc(i).st==="due"?"sv":svc(i).st==="soon"?"out":"mu")+'">'+esc(svcTxt(i))+(svc(i).st==="due"?" ⚠ TREBA SERVIS ("+esc(svc(i).why)+")":svc(i).st==="soon"?" · uskoro servis":"")+'</span>'+(i.rem?'<br><span class="mu">Napomena: '+esc(i.rem)+'</span>':"")+(i.bought||i.buy?'<br><span class="mu">nabavljeno '+(i.bought?esc(hrDate(i.bought)):"")+(i.buy?(i.bought?" · ":"")+fm(i.buy):"")+'</span>':"")+svHist(i)+(i.note?'<br><span class="sv">'+esc(i.note)+'</span>':"")+(i.status==="out"?'<br><span class="mu">'+esc(i.holder)+'</span>':"")+'</span>'+
     '<span class="tag '+(i.status==="in"?"in":i.status==="out"?"out":"sv")+'">'+(i.status==="in"?"slobodno":i.status==="out"?"posuđeno":"servis")+'</span>'+
     '<div class="act"><button class="b g" data-ed="'+i.id+'">uredi</button>'+(i.note&&i.status==="in"?'<button class="b g" data-cn="'+i.id+'">popravljeno</button>':"")+
-    (i.status!=="out"?'<button class="b g" data-sd="'+i.id+'">servis / popravak</button><button class="b g" data-sv="'+i.id+'">'+(i.status==="servis"?"u uporabu":"servis")+'</button><button class="b r" data-del="'+i.id+'">🗑</button>':"")+'</div></div>';
+    (i.status!=="out"?'<button class="b g" data-sd="'+i.id+'">servis / popravak</button><button class="b g" data-sv="'+i.id+'">'+(i.status==="servis"?"u uporabu":"servis")+'</button><button class="b r" data-del="'+i.id+'">obriši</button>':"")+'</div></div>';
 }
 function renderInv(){
   $("inv").innerHTML=TYPES.map(([p,n])=>{
@@ -973,7 +974,7 @@ function renderSpare(){
       if(spFix===x.id)return '<div class="it s-due" style="display:block"><b>'+esc(x.name)+'</b> – dio je popravljen<div class="mu" style="margin:6px 0 4px">Trošak vanjskog servisa u € (nije obavezno)</div><input type="text" data-dec="1" inputmode="decimal" data-spc="'+esc(x.id)+'"><div class="row" style="margin-top:8px"><button class="b" data-spfok="'+esc(x.id)+'">Spremi</button><button class="b g" data-spfx="1">Odustani</button></div></div>';
       const rp=x.repair||0;
       return '<div class="it '+(rp>0?"s-due":"s-in")+'"><span class="n"><b>'+esc(x.name)+'</b>'+(rp>0?'<br><span class="sv">'+rp+' za servis'+(x.note?" – "+esc(x.note):"")+'</span>':"")+'</span>'+st(x.id,"ok",x.ok||0,"mu")+st(x.id,"repair",rp,rp>0?"sv":"mu")+
-        '<div class="act">'+(rp>0?'<button class="b g" data-spf="'+esc(x.id)+'">popravljeno</button>':"")+'<input data-spn="'+esc(x.id)+'" placeholder="Napomena (npr. treba novi o-ring)" value="'+esc(x.note||"")+'" style="flex:1;min-width:140px"><button class="b r" data-spd="'+esc(x.id)+'">🗑</button></div></div>';
+        '<div class="act">'+(rp>0?'<button class="b g" data-spf="'+esc(x.id)+'">popravljeno</button>':"")+'<input data-spn="'+esc(x.id)+'" placeholder="Napomena (npr. treba novi o-ring)" value="'+esc(x.note||"")+'" style="flex:1;min-width:140px"><button class="b r" data-spd="'+esc(x.id)+'">obriši</button></div></div>';
     }).join(""):'<div class="mu">Još nema unosa. Upiši što imaš (npr. rezervni manometar, o-ring, usnik).</div>')+
     '<div class="row" style="margin-top:10px"><input id="sp-name" placeholder="Naziv dijela" autocomplete="off"><input id="sp-qty" type="number" min="0" value="1" inputmode="numeric" style="width:70px;flex:none"><button class="b" id="sp-add" style="flex:none">Dodaj</button></div>'+
     '<div class="row" style="margin-top:8px"><input id="sp-buy" type="text" data-dec="1" inputmode="decimal" placeholder="Cijena nabave ukupno € (nije obavezno)"><input id="sp-bd" type="date" value="'+todayIso()+'" style="flex:none;width:150px"></div>'+(isOwner?'<label class="row mu" style="margin-top:6px"><input type="checkbox" id="sp-cash" style="width:20px;height:20px;flex:none"> Plaćeno iz blagajne (upiši izdatak u financije). Bez kvačice = platio klub.</label>':"")+
@@ -1367,7 +1368,7 @@ function renderFin(){
       if(S)h+='<div class="it" style="display:block"><b>Ukupno potrošeno na opremu '+y+'.</b><div class="mu">servis i popravci '+fm(S.servis)+' · nabava iz blagajne '+fm(S.oprema)+' · nabava koju je platio klub '+fm(ct)+'</div><div style="margin-top:4px;font-size:1.2rem"><b>'+fm(S.servis+S.oprema+ct)+'</b></div></div>';}
     h+='<button class="b" data-fpdf="1" style="width:100%;margin-top:10px">PDF za skupštinu</button><div class="mu" style="margin-top:6px">U PDF-u su novac i statistika po komadu (regulatori, kompenzatori, odijela), bez imena članova. Podaci se bilježe od uvođenja aplikacije, pa je prva godina nepotpuna.</div></div>';
     const rows=L.rows.slice().reverse().slice(0,60);
-    h+='<div class="card"><h2>Promet</h2>'+(rows.length?rows.map(r=>'<div class="it"><span class="n">'+esc(r.desc)+'<br><span class="mu">'+new Date(r.ts).toLocaleDateString("hr")+' · '+esc(r.cat)+'</span></span><span class="amt '+(r.amt>=0?"p":"m")+'">'+sgn2(r.amt)+'</span>'+(r.manual?(finAsk===r.id?'<button class="b r" data-fdel2="'+esc(r.id)+'">Da, obriši</button><button class="b g" data-fno="1">Ne</button>':'<button class="b r" data-fdel="'+esc(r.id)+'">🗑</button>'):"")+'</div>').join("")+(L.rows.length>60?'<div class="mu" style="margin-top:6px">Prikazano zadnjih 60 stavki.</div>':""):'<div class="mu">Još nema prometa nakon početnog stanja.</div>')+'</div>';
+    h+='<div class="card"><h2>Promet</h2>'+(rows.length?rows.map(r=>'<div class="it"><span class="n">'+esc(r.desc)+'<br><span class="mu">'+new Date(r.ts).toLocaleDateString("hr")+' · '+esc(r.cat)+'</span></span><span class="amt '+(r.amt>=0?"p":"m")+'">'+sgn2(r.amt)+'</span>'+(r.manual?(finAsk===r.id?'<button class="b r" data-fdel2="'+esc(r.id)+'">Da, obriši</button><button class="b g" data-fno="1">Ne</button>':'<button class="b r" data-fdel="'+esc(r.id)+'">obriši</button>'):"")+'</div>').join("")+(L.rows.length>60?'<div class="mu" style="margin-top:6px">Prikazano zadnjih 60 stavki.</div>':""):'<div class="mu">Još nema prometa nakon početnog stanja.</div>')+'</div>';
   }
   $("fin").innerHTML=h;
   const ca=$("fin-ca");if(ca)ca.oninput=()=>{const v=ca.value===""?null:Number(ca.value);$("fin-cd").textContent=v==null?"":"Razlika u odnosu na aplikaciju: "+sgn2(v-finBal)};
