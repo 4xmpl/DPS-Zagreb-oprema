@@ -265,10 +265,12 @@ function slowScroll(y,ms){
 function sayB(t,field){
   $("msg").innerHTML="";
   if(!t||/^Spremljeno/.test(t))return;
-  toast(t,"",true);edge("var(--er)",2000);
+  toast(t,"",true);
   const el=$(field)||$("who");
   if(el){const r=el.getBoundingClientRect();slowScroll(Math.max(0,window.scrollY+r.top-90),700);
-    const box=el.closest(".card")||el;box.animate([{boxShadow:"0 0 0 0 transparent"},{boxShadow:"0 0 0 3px var(--er)"},{boxShadow:"0 0 0 3px var(--er)"},{boxShadow:"0 0 0 0 transparent"}],{duration:2400,easing:"ease-out"});
+    const box=el.closest(".card")||el,h=box.querySelector("h2"),K=[{offset:0,easing:"ease-out"},{offset:.15},{offset:.8},{offset:1}];
+    box.animate(K.map((k,n)=>Object.assign(k,{boxShadow:n===0||n===3?"0 0 0 0 transparent":"0 0 0 2px var(--er)",backgroundColor:n===0||n===3?"var(--card)":"color-mix(in srgb,var(--er) 8%,var(--card))"})),{duration:3000});
+    if(h)h.animate(K.map((k,n)=>({offset:k.offset,color:n===0||n===3?"var(--tx)":"var(--er)"})),{duration:3000});
     if(el.focus&&el.tagName==="INPUT"&&el.type!=="date")setTimeout(()=>{try{el.focus({preventScroll:true})}catch(e){}},750)}
 }
 function edge(color,ms){
