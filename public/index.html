@@ -141,6 +141,7 @@ body.invmode .card{box-shadow:none}
 <label class="row" style="margin-bottom:8px"><input type="checkbox" id="free" style="width:22px;height:22px;flex:none"> Ne plaća (npr. pomoć u buksi)</label>
 <input id="freewhy" placeholder="Razlog (obavezno, ide u PDF)" autocomplete="off"></div>
 <div class="card"><h2>Cijena</h2><div id="price" style="font-size:1.3rem;font-weight:700"></div></div>
+<div id="savemsg" class="msg hide" role="alert" style="background:color-mix(in srgb,var(--er) 16%,var(--card));color:var(--er);font-weight:600"></div>
 <button class="b" id="save" style="width:100%">Spremi izdavanje</button>
 </section>
 
@@ -253,6 +254,9 @@ function renderBk(){
   el.innerHTML=(t&&d<30)?"":'<div class="msg" style="background:color-mix(in srgb,var(--wa) 18%,var(--card))">Sigurnosna kopija: '+(t?"zadnja je napravljena prije "+d+" dana":"još nije napravljena")+'. Napravi je u postavkama (zupčanik) → Sigurnosna kopija.</div>';
 }
 document.addEventListener("dps-backup",renderBk);
+function sayB(t){const m=$("savemsg");if(!m)return say(t);if(!t){m.classList.add("hide");m.textContent="";return}
+  const ok=/^Spremljeno/.test(t);if(ok){m.classList.add("hide");return}
+  m.textContent=t;m.classList.remove("hide");$("msg").innerHTML="";try{m.scrollIntoView({block:"center",behavior:"smooth"})}catch(e){}}
 function say(t){$("msg").innerHTML=t?'<div class="msg">'+esc(t)+'</div>':""}
 
 $("morebtn").onclick=e=>{e.stopPropagation();$("moreb").classList.toggle("hide")};
@@ -322,13 +326,13 @@ $("pick").oninput=e=>{if(e.target.id==="need-size"&&needAsk)needAsk.size=e.targe
 
 $("save").onclick=async()=>{
   const name=$("who").value.trim(),trip=$("trip").value.trim(),kind=$("kind").value,days=Math.max(1,Math.min(60,parseInt($("days").value)||1)),batch=Date.now(),full=calcPrice(),fo=kind==="izlet"&&$("free").checked,why=$("freewhy").value.trim(),price=fo?0:full;
-  if(!name)return say("Upiši ime osobe.");
-  if(!trip)return say("Upiši izlet ili akciju.");
-  const due=$("due").value;if(!due)return say("Upiši do kada se oprema vraća.");if(due<todayIso())return say("Datum povratka ne može biti prije današnjeg dana.");
-  if(fo&&!why)return say("Upiši razlog zašto je besplatno.");
-  if(!sel.length&&!lon(lead))return say("Odaberi barem jedan komad opreme ili olovo.");
+  if(!name)return sayB("Upiši ime osobe.");
+  if(!trip)return sayB("Upiši izlet ili akciju.");
+  const due=$("due").value;if(!due)return sayB("Upiši do kada se oprema vraća.");if(due<todayIso())return sayB("Datum povratka ne može biti prije današnjeg dana.");
+  if(fo&&!why)return sayB("Upiši razlog zašto je besplatno.");
+  if(!sel.length&&!lon(lead))return sayB("Odaberi barem jedan komad opreme ili olovo.");
   if(!db||busy)return;
-  busy=true;$("save").disabled=true;say("");
+  busy=true;$("save").disabled=true;sayB("");
   try{
     const codes=sel.filter(c=>{const i=items.find(x=>x.id===c);return i&&i.status==="in"});
     const done=[];
@@ -338,7 +342,7 @@ $("save").onclick=async()=>{
       if(er&&er.code==="zauzeto"){
         for(const c of done){try{await db.collection("items").doc(c).update({status:"in",holder:"",since:0,trip:"",kind:"",days:0,due:"",batch:0})}catch(e2){}}
         busy=false;$("save").disabled=false;renderPick();
-        return say("Neki od komada je u međuvremenu već izdan (drugi uređaj). Ništa nije spremljeno. Odaberi opremu ponovno.");
+        return sayB("Neki od komada je u međuvremenu već izdan (drugi uređaj). Ništa nije spremljeno. Odaberi opremu ponovno.");
       }
       throw er;
     }
@@ -347,8 +351,8 @@ $("save").onclick=async()=>{
     await db.collection("log").add(Object.assign({ts:batch,batch,name,action:"izdano",codes,lead:lt,trip,kind,days,due,price,leadObj:lt?JSON.parse(JSON.stringify(lead)):null},fo?{free:true,freeWhy:why,saved:full}:{}));
     sel=[];lead={belt:false,w25:0,w2:0,w1:0};beltManual=false;$("belt").value="0";document.querySelectorAll("[data-x]").forEach(c=>c.checked=false);$("bova").value="";$("who").value="";$("free").checked=false;$("freewhy").value="";renderPick();renderLead();renderSugg();
     toast("Posuđeno: "+name+" · "+codes.length+" "+(codes.length===1?"komad":"komada")+(lt?" + olovo":""),"Vraća do "+new Date(due+"T00:00:00").toLocaleDateString("hr",{weekday:"long",day:"numeric",month:"numeric"})+" · "+(kind==="izlet"?(fo?"besplatno":"naplatiti "+fm(price)):kindTxt(kind)));
-    say("Spremljeno za "+name+" ("+(kind==="izlet"?(fo?"besplatno – "+why:"naplatiti "+fm(price)):kindTxt(kind))+").");
-  }catch(e){say("Greška pri spremanju ("+(e.code||"?")+"). Provjeri imaš li pravo uređivanja.")}
+    sayB("Spremljeno za "+name+" ("+(kind==="izlet"?(fo?"besplatno – "+why:"naplatiti "+fm(price)):kindTxt(kind))+").");
+  }catch(e){sayB("Greška pri spremanju ("+(e.code||"?")+"). Provjeri imaš li pravo uređivanja.")}
   busy=false;$("save").disabled=false;
 };
 
