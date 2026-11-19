@@ -49,3 +49,4 @@ Nije riješeno (kasnije): nepotpuni višekoračni upisi pri prekidu veze (potreb
 - Način rada Inventura (zaključava aplikaciju, brže osvježavanje, tamna/jantarna tema, istječe nakon 12 h).
 - Lokacija komada ("gdje stoji").
 - Iskorištenost opreme + gumb "nije bilo komada".
+- Inventar kao pločice (Oprema, Rezervni dijelovi, Inventura, Servis, Cjenik, Kopija); gornja traka se mijenja po kartici (Naplata, Financije, Statistika, Inventar).

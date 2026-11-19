@@ -64,6 +64,16 @@ button:disabled{opacity:.5}
 .it input[type=checkbox]{width:22px;height:22px}
 .msg{padding:10px;border-radius:8px;background:var(--ac2);margin-bottom:10px}
 .hide{display:none}
+#invhub{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#invhub button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:14px;padding:14px;min-height:112px;font:inherit;box-shadow:0 1px 2px rgba(15,30,45,.05)}
+#invhub button .ic{width:2rem;height:2rem;color:var(--ac)}
+#invhub button b{font-size:1rem}#invhub button span{font-size:.82rem;color:var(--mu)}
+#invhub button.e{border-color:var(--er)}#invhub button.e span{color:var(--er)}#invhub button.e .ic{color:var(--er)}
+#invhub button.a{border-color:#b5651d;background:color-mix(in srgb,#b5651d 14%,var(--card))}#invhub button.a span{color:#b5651d;font-weight:600}
+#invbk.hide,#invhub.hide{display:none}
+#invbk{display:flex;align-items:center;gap:12px;margin-bottom:10px}#invbk b{font-size:1.1rem}
+#svcl:empty::before{content:"✓ Ništa ne čeka servis.";display:block;padding:14px;border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--ok);font-weight:600}
+.ov .m b{font-size:1.05rem;padding:.2rem 0}
 body.simple nav [data-t="pay"],body.simple nav #morebtn,body.simple nav #moreb,body.simple nav [data-t="inv"],body.simple nav [data-t="stat"],body.simple nav [data-t="fin"],body.simple [data-undo],body.simple [data-pld],body.simple [data-hed],body.simple .own{display:none}
 .spov button{width:100%;text-align:left;border:1px solid var(--er);background:color-mix(in srgb,var(--er) 12%,transparent);color:var(--er);border-radius:12px;padding:10px 12px;font:inherit;font-weight:600;margin-bottom:10px}
 .amt{font-weight:700;white-space:nowrap}.amt.p{color:var(--ok)}.amt.m{color:var(--er)}
@@ -79,7 +89,7 @@ body.simple nav [data-t="pay"],body.simple nav #morebtn,body.simple nav #moreb,b
 body.invmode{--bg:#0d1117;--card:#161b22;--tx:#e6edf3;--mu:#8b98a8;--ac:#d9972b;--ac2:#2a2418;--bd:#2b3440;--ok:#3fb27f;--wa:#d9972b;--er:#e5685a}
 body.invmode nav,body.invmode #ov,body.invmode #spov,body.invmode #bkov,body.invmode #gear,body.invmode #setp{display:none!important}
 body.invmode button.b{color:#10151b}body.invmode button.b.g{color:var(--ac);background:var(--ac2)}body.invmode button.b.r{color:var(--er);background:transparent}
-body.invmode #p-inv>*:not(#stk){display:none}
+body.invmode #p-inv>*{display:none!important}body.invmode #p-inv>#pn-stk{display:block!important}
 body.invmode .it.stkr .act .b{flex:1;min-height:50px;font-size:.95rem}
 body.invmode .it.stkr{border-radius:6px}
 body.invmode .card{box-shadow:none}
@@ -157,6 +167,8 @@ body.invmode .card{box-shadow:none}
 <section id="p-fin" class="hide"><div id="fin"></div></section>
 
 <section id="p-inv" class="hide">
+<div id="invhub"></div><div id="invbk" class="hide"><button class="b g" id="invback" type="button">‹ Natrag</button><b id="invtt"></b></div>
+<div class="ipane hide" id="pn-opr">
 <div class="card"><h2 id="addt" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span>Dodaj opremu</span><span class="mu" id="addar">▸</span></h2><div id="addw" class="hide" style="margin-top:8px">
 <div class="row" style="margin-bottom:8px"><select id="a-type"></select><input id="a-qty" type="number" min="1" max="50" value="1" style="width:80px"></div>
 <div class="row" style="margin-bottom:8px"><div style="flex:1"><div class="mu">Oznaka (prefiks šifre)</div><input id="a-pre" maxlength="6" autocapitalize="characters" autocomplete="off"></div><div style="flex:1"><div class="mu">Počni od broja</div><input id="a-start" type="number" min="1" max="999" inputmode="numeric" placeholder="automatski"></div></div>
@@ -166,12 +178,19 @@ body.invmode .card{box-shadow:none}
 <button class="b" id="add" style="width:100%">Dodaj</button>
 <div class="mu" style="margin-top:6px">Servis: regulator treba servis na 100 zarona ili 730 dana (2 godine), a kompenzator (nipl) svake godine; upozorenje se pojavi malo prije. Šifre se dodjeljuju automatski (npr. RE01, RE02… ili KP01, KP02…); oznaku i početni broj možeš sam promijeniti. Napiši ih flomasterom na opremu. Olova, rukavice, lampe, deco bove, padobran, vreća i kompas se ne vode kao komadi, nego se biraju kod izdavanja.</div></div></div>
 <div id="inv"></div>
-<div id="spare"></div><datalist id="svwho"></datalist>
-<div class="card"><h2>Cjenik (izlet)</h2><button class="b g" id="cjt" style="width:100%">Promijeni cjenik</button><div id="cjw" class="hide"><div id="cj" style="margin-top:10px"></div><button class="b" id="cjs" style="width:100%;margin-top:8px">Spremi cjenik</button><div class="mu" style="margin-top:6px">Cijene komada su za 1 dan; za više dana se same preračunaju. Eko akcija i tečaj su besplatni.</div></div></div>
-<div class="card"><h2>Sigurnosna kopija</h2><div class="row"><button class="b g" id="exi" style="flex:1">Inventar (CSV)</button><button class="b g" id="exh" style="flex:1">Povijest (CSV)</button></div><div class="mu" style="margin-top:6px">Tablicu otvoriš u Excelu ili Google Sheetsu. Preporučam izvoz nakon svakog izleta.</div></div>
-<div id="stk"></div>
-<div id="svcl"></div>
 <div id="sizes"></div>
+</div>
+<div class="ipane hide" id="pn-spare">
+<div id="spare"></div><datalist id="svwho"></datalist>
+</div>
+<div class="ipane hide" id="pn-cj">
+<div class="card"><h2>Cjenik (izlet)</h2><button class="b g" id="cjt" style="width:100%">Promijeni cjenik</button><div id="cjw" class="hide"><div id="cj" style="margin-top:10px"></div><button class="b" id="cjs" style="width:100%;margin-top:8px">Spremi cjenik</button><div class="mu" style="margin-top:6px">Cijene komada su za 1 dan; za više dana se same preračunaju. Eko akcija i tečaj su besplatni.</div></div></div>
+</div>
+<div class="ipane hide" id="pn-bk">
+<div class="card"><h2>Sigurnosna kopija</h2><div class="row"><button class="b g" id="exi" style="flex:1">Inventar (CSV)</button><button class="b g" id="exh" style="flex:1">Povijest (CSV)</button></div><div class="mu" style="margin-top:6px">Tablicu otvoriš u Excelu ili Google Sheetsu. Preporučam izvoz nakon svakog izleta.</div></div>
+</div>
+<div class="ipane hide" id="pn-stk"><div id="stk"></div></div>
+<div class="ipane hide" id="pn-svc"><div id="svcl"></div></div>
 </section>
 </main>
 
@@ -238,11 +257,13 @@ function say(t){$("msg").innerHTML=t?'<div class="msg">'+esc(t)+'</div>':""}
 
 $("morebtn").onclick=e=>{e.stopPropagation();$("moreb").classList.toggle("hide")};
 document.addEventListener("click",e=>{if(!e.target.closest("#moreb,#morebtn"))$("moreb").classList.add("hide")});
+let curTab="out";
 document.querySelectorAll("nav button[data-t]").forEach(b=>b.onclick=()=>{
   window.scrollTo(0,0);$("moreb").classList.add("hide");
   document.querySelectorAll("nav button[data-t]").forEach(x=>x.classList.toggle("on",x===b));
   $("morebtn").classList.toggle("on",!!b.closest("#moreb"));
   ["out","ret","pay","his","inv","plan","stat","fin"].forEach(t=>$("p-"+t).classList.toggle("hide",t!==b.dataset.t));
+  curTab=b.dataset.t;if(curTab==="inv")showPane("");renderOv();
   if(b.dataset.t==="pay"){$("pf").value="0";$("pq").value="";renderPay()}
 });
 $("a-type").innerHTML=TYPES.map(t=>'<option value="'+t[0]+'">'+t[1]+'</option>').join("");
@@ -337,15 +358,34 @@ function entries(){
   const b=leads.filter(l=>l.status==="out").map(l=>({k:"lead:"+l.id,lead:l,holder:l.holder,t:leadTxt(l),since:l.since,trip:l.trip,kind:l.kind,days:l.days,due:l.due||"",batch:l.batch}));
   return a.concat(b);
 }
+const fmr=n=>Math.round(n).toLocaleString("hr")+" €";
 function renderOv(){
   const n=st=>items.filter(i=>i.status===st).length;
   const due=items.filter(i=>i.status!=="out"&&i.status!=="servis"&&svc(i).st==="due").length;
-  const seen={};let late=0;
-  entries().forEach(x=>{const k=x.batch||x.k;if(seen[k])return;seen[k]=1;const d=dueInfo(x);if(d&&d.late)late++});
-  const t=(tab,cls,v,l)=>'<button data-go="'+tab+'" class="'+cls+'"><b>'+v+'</b><span>'+l+'</span></button>';
-  $("ov").innerHTML=t("ret",n("out")?"w":"z",n("out"),"vani")+t("out","g",n("in"),"slobodno")+t("ret",late?"e":"z",late,"kasni")+t("inv",(due||n("servis"))?"e":"z",due+n("servis"),"servis");
+  const t=(tab,cls,v,l,pane)=>'<button '+(tab?'data-go="'+tab+'"':'')+(pane?' data-pane="'+pane+'"':'')+' class="'+cls+'"><b>'+v+'</b><span>'+l+'</span></button>';
+  const unp=()=>logs.filter(x=>x.action==="izdano"&&x.kind==="izlet"&&(x.price||0)>0&&!x.paid&&!x.voided);
+  let h="";
+  if(curTab==="pay"){
+    const un=unp(),sum=un.reduce((a,x)=>a+x.price,0),ppl=new Set(un.map(x=>String(x.name||"").trim().toLowerCase())).size;
+    const old=un.length?Math.floor((Date.now()-Math.min.apply(null,un.map(x=>x.ts||Date.now())))/864e5):0;
+    h=t("",sum?"w m":"g m",fmr(sum),"neplaćeno")+t("",ppl?"w":"g",ppl,"osoba")+t("",un.length?"w":"g",un.length,"posudbi")+t("",old>30?"e":"z",old+" d","najstarije");
+  }else if(curTab==="fin"&&isOwner){
+    const L=finLedger(),y=new Date().getFullYear(),S=L.st?finSummary(L,y):null,un=unp().reduce((a,x)=>a+x.price,0);
+    h=t("",L.st?"g m":"z m",L.st?fmr(finBalAt(L,Infinity)):"—","u blagajni")+t("pay",un?"w m":"z m",fmr(un),"za naplatiti")+t("",S?"g m":"z m",S?fmr(S.najam+S.steta+S.prihod):"—","prihod "+y)+t("",S?"e m":"z m",S?fmr(S.servis+S.oprema+S.ostalo):"—","potrošeno");
+  }else if(curTab==="stat"){
+    const y=statYear?Number(statYear):0,L=logs.filter(x=>x.action==="izdano"&&!x.voided&&(!y||new Date(x.ts).getFullYear()===y));
+    const trips=new Set(L.map(x=>String(x.trip||"").trim().toLowerCase()).filter(Boolean)).size,paid=L.filter(x=>x.paid).reduce((a,x)=>a+(x.price||0),0);
+    h=t("","z",trips,"izleta"+(y?" "+y:""))+t("","z",L.length,"posudbi")+t("","g m",fmr(paid),"naplaćeno")+t("ret",n("out")?"w":"z",n("out"),"vani sada");
+  }else if(curTab==="inv"){
+    h=t("","z",items.length,"komada")+t("out","g",n("in"),"slobodno")+t("ret",n("out")?"w":"z",n("out"),"vani")+t("inv",(due||n("servis"))?"e":"z",due+n("servis"),"servis","svc");
+  }else{
+    const seen={};let late=0;
+    entries().forEach(x=>{const k=x.batch||x.k;if(seen[k])return;seen[k]=1;const d=dueInfo(x);if(d&&d.late)late++});
+    h=t("ret",n("out")?"w":"z",n("out"),"vani")+t("out","g",n("in"),"slobodno")+t("ret",late?"e":"z",late,"kasni")+t("inv",(due||n("servis"))?"e":"z",due+n("servis"),"servis","svc");
+  }
+  $("ov").innerHTML=h;
 }
-$("ov").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;const nb=document.querySelector('nav [data-t="'+b.dataset.go+'"]');if(nb&&getComputedStyle(nb).display!=="none")nb.click()};
+$("ov").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;const nb=document.querySelector('nav [data-t="'+b.dataset.go+'"]');if(nb&&getComputedStyle(nb).display!=="none"){nb.click();if(b.dataset.pane)showPane(b.dataset.pane)}};
 let retOpen={},retQ="",eq=null,retAsk=null;
 const ns=t=>String(t||"").toLowerCase().replace(/đ/g,"d").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 const EQX=[["gloves","Rukavice"],["pad","Padobran"],["vre","Vreća za opremu"],["kom","Kompas"],["lam","Lampa"],["boca","Boca"]];
@@ -1050,6 +1090,7 @@ function payBtn(f,fr,pr){
 }
 const undoBtn=f=>f.batch?'<button class="b r" data-undo="'+f.batch+'">Poništi izdavanje</button>':"";
 function renderPay(){
+  renderOv();
   const f=$("pf").value,q=$("pq").value.trim().toLowerCase();
   const rows=logs.filter(x=>x.action==="izdano"&&x.kind==="izlet"&&(x.price||0)>0);
   $("paysum").innerHTML='<div class="card"><b>Ukupno neplaćeno: '+fm(rows.filter(x=>!x.paid).reduce((a,x)=>a+x.price,0))+'</b></div>';
@@ -1078,7 +1119,34 @@ function renderSvcList(){
   const cnt=t=>l.filter(x=>x.i.type===t&&x.v.st==="due").length,sm=Object.keys(SVR).map(t=>(TN[t]||t)+" ("+SVR[t].what.replace("servis ","")+"): "+cnt(t)+" na redu").join(" · ");
   $("svcl").innerHTML=l.length?'<div class="card"><h2>Za servis</h2><div class="mu" style="margin-bottom:6px">'+esc(sm)+'</div>'+l.map(x=>svId===x.i.id?svForm(x.i.id):'<div class="it"><span class="n"><b>'+esc(x.i.id)+'</b> '+esc(TN[x.i.type]||"")+' <span class="mu">· '+esc(SVR[x.i.type].what)+'</span><br><span class="'+(x.v.st==="due"?"sv":"out")+'">'+(x.v.st==="due"?"TREBA SERVIS: "+esc(x.v.why):"uskoro: "+(SVR[x.i.type].d?x.v.dv+" zarona":"")+(x.v.ds!=null?(SVR[x.i.type].d?", ":"")+"servis star "+x.v.ds+" d":""))+'</span></span><button class="b g" data-sd="'+esc(x.i.id)+'">servis / popravak</button></div>').join("")+'</div>':"";
 }
-const _ri=renderInv;renderInv=function(){_ri();renderSizes();renderSvcList();renderSpare()};
+const _ri=renderInv;renderInv=function(){_ri();renderSizes();renderSvcList();renderSpare();renderHub()};
+/* ---- Inventar: pločice ---- */
+let invPane="";
+const IPN={opr:"Oprema",spare:"Rezervni dijelovi",stk:"Inventura",svc:"Za servis",cj:"Cjenik",bk:"Sigurnosna kopija"};
+function showPane(p){
+  invPane=p||"";
+  Object.keys(IPN).forEach(k=>$("pn-"+k).classList.toggle("hide",k!==invPane));
+  $("invhub").classList.toggle("hide",!!invPane);$("invbk").classList.toggle("hide",!invPane);$("invtt").textContent=IPN[invPane]||"";
+  window.scrollTo(0,0);
+}
+$("invback").onclick=()=>showPane("");
+function renderHub(){
+  const ic=d=>'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+d+'</svg>';
+  const n=st=>items.filter(i=>i.status===st).length,sv=items.filter(i=>i.status==="servis"||(i.status!=="out"&&svc(i).st==="due")).length;
+  const sp=spares||[],rp=sp.reduce((a,x)=>a+(x.repair||0),0),bt=window.dpsBackupAt,bd=bt?Math.floor((Date.now()-bt)/864e5):null;
+  const T=[
+   ["opr","",ic('<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>'),"Oprema",items.length+" komada · "+n("in")+" slobodno"],
+   ["spare",rp?"e":"",ic('<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>'),"Rezervni dijelovi",sp.length?(rp?rp+" za servis":sp.length+" vrsta"):"nema upisanih"],
+   ["stk",window.dpsInv?"a":"",ic('<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 13l2 2 4-4"/>'),"Inventura",window.dpsInv?"U TIJEKU":"brojanje opreme"],
+   ["svc",sv?"e":"",ic('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),"Servis",sv?sv+" čeka servis":"sve u redu"],
+   ["cj","",ic('<path d="M17 7a6 6 0 1 0 0 10"/><path d="M4 10h9M4 14h9"/>'),"Cjenik","prvi dan "+fm(prices.base)],
+   ["bk",(bt&&bd<30)?"":"e",ic('<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/>'),"Sigurnosna kopija",bt?"zadnja prije "+bd+" d":"još nije napravljena"]
+  ];
+  $("invhub").innerHTML=T.map(x=>'<button type="button" data-pn="'+x[0]+'" class="'+x[1]+'">'+x[2]+'<b>'+x[3]+'</b><span>'+x[4]+'</span></button>').join("");
+}
+$("invhub").onclick=e=>{const b=e.target.closest("[data-pn]");if(b)showPane(b.dataset.pn)};
+document.addEventListener("dps-backup",renderHub);document.addEventListener("dps-inv",renderHub);
+
 $("svcl").onclick=$("inv").onclick;
 
 /* ---- rezervni dijelovi ---- */
@@ -1087,9 +1155,9 @@ function renderSpov(){
   const n=spares.reduce((a,x)=>a+(x.repair||0),0);
   $("spov").innerHTML=n>0?'<button type="button">⚠ Rezervni dijelovi za servis: '+n+'</button>':"";
 }
-$("spov").onclick=e=>{if(e.target.closest("button")){const nb=document.querySelector('nav [data-t="inv"]');if(nb)nb.click()}};
+$("spov").onclick=e=>{if(e.target.closest("button")){const nb=document.querySelector('nav [data-t="inv"]');if(nb){nb.click();showPane("spare")}}};
 function renderSpare(){
-  renderSpov();
+  renderSpov();renderHub();
   {const a=document.activeElement;if(a&&a.tagName==="INPUT"&&$("spare").contains(a))return}
   const l=spares.slice().sort((x,y)=>spName(x).localeCompare(spName(y),"hr"));
   const st=(id,f,v,cls)=>'<div class="sp"><span class="'+cls+'">'+(f==="ok"?"ispravni":"za servis")+'</span><button class="b g st" data-sp="'+esc(id)+'|'+f+'|-1">−</button><span class="cnt">'+v+'</span><button class="b g st" data-sp="'+esc(id)+'|'+f+'|1">+</button></div>';
@@ -1401,6 +1469,7 @@ function utilCard(){
   return h+'</div>';
 }
 function renderStats(){
+  renderOv();
   const mc=document.getElementById("mem-q");
   if(mc&&document.activeElement===mc){const m=$("mem-res");if(m)m.innerHTML=memberCard();return}
   const iz=logs.filter(x=>x.action==="izdano"),pk=x=>x.kind==="izlet"&&(x.price||0)>0,sum=a=>a.reduce((s,x)=>s+(x.price||0),0);
@@ -1495,6 +1564,7 @@ function finYears(){
   return [...ys].sort((a,b)=>b-a);
 }
 function renderFin(){
+  renderOv();
   if(!isOwner){$("fin").innerHTML="";return}
   {const a=document.activeElement;if(a&&$("fin").contains(a)&&(a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA"))return}
   const L=finLedger(),bal=finBalAt(L,Infinity);finBal=bal;
