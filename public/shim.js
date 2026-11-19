@@ -10,11 +10,14 @@
     return fetch("/api", { method: "POST", headers: h, body: JSON.stringify(body) }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (r.status === 401 && !noAuth) { dropToken(); showLogin("Sesija je istekla. Upiši PIN."); var e = new Error("auth"); e.code = "auth"; throw e; }
-        if (!r.ok) { var e2 = new Error(j.error || "greška"); e2.code = r.status === 403 ? "zabranjeno" : (j.error || r.status); e2.status = r.status; throw e2; }
+        if (!r.ok) { var e2 = new Error(j.message || j.error || "greška"); e2.code = r.status === 403 ? "zabranjeno" : (j.error || r.status); e2.status = r.status; throw e2; }
         return j;
       });
     });
   }
+  /* način inventure: stanje dolazi uz svaku provjeru verzije; dok traje, osvježava se češće */
+  function setInv(on) { on = !!on; if (on !== !!window.dpsInv) { window.dpsInv = on; document.dispatchEvent(new Event("dps-inv")); } }
+  window.dpsMode = function (on) { return api({ op: "mode", inv: !!on }).then(function (j) { setInv(j.inv); poll(true); return j; }); };
   function dropToken() { token = null; role = null; try { localStorage.removeItem(TK); } catch (e) {} }
 
   /* ---------- prijava ---------- */
@@ -56,7 +59,7 @@
   function started() { if (!didStart) { didStart = true; resolveReady(); backupInfo(); } setupSettings(); }
   function boot() {
     if (!token) return showLogin();
-    api({ op: "ver" }).then(function (j) { role = j.role; started(); }).catch(function (e) {
+    api({ op: "ver" }).then(function (j) { role = j.role; setInv(j.inv); started(); }).catch(function (e) {
       if (!e || e.code !== "auth") showLogin("Nema veze s poslužiteljem. Provjeri internet pa upiši PIN.");
     });
   }
@@ -104,14 +107,15 @@
     if (!token || document.hidden) return;
     var now = Date.now(); if (!force && now - lastPoll < 2500) return; lastPoll = now;
     api({ op: "ver" }).then(function (j) {
-      role = j.role;
+      role = j.role; setInv(j.inv);
       Object.keys(subs).forEach(function (col) {
         if (!subs[col].length) return;
         if (j.v[col] !== lastVer[col]) { lastVer[col] = j.v[col]; fetchCol(col); }
       });
     }).catch(function () {});
   }
-  setInterval(function () { if (Date.now() - lastAct < 5 * 60e3) poll(); }, 12000);
+  var tick = 0;
+  setInterval(function () { tick++; if (Date.now() - lastAct < 5 * 60e3 && (window.dpsInv || tick % 4 === 0)) poll(); }, 3000);
   function act() { var idle = Date.now() - lastAct > 60e3; lastAct = Date.now(); if (idle) poll(true); }
   ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { document.addEventListener(ev, act, { passive: true }); });
   document.addEventListener("visibilitychange", function () { if (!document.hidden) { lastAct = Date.now(); poll(true); } });

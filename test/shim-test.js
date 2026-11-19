@@ -1,7 +1,7 @@
 /* TESTNA zamjena za public/shim.js: ista sučelja (claude.use db/user/downloads),
    ali baza je lažna i živi samo u ovom pregledniku. Ne dira pravu aplikaciju. */
 (function () {
-  var KEY = "dpsTestDb-v2", COLS = ["items","lead","log","plans","svclog","config","stock","stockcnt","spare","fin"];
+  var KEY = "dpsTestDb-v2", COLS = ["items","lead","log","plans","svclog","config","stock","stockcnt","spare","fin","need"];
   var data = null, subs = {};
   function load() {
     try { var s = localStorage.getItem(KEY); if (s) { data = JSON.parse(s); return; } } catch (e) {}
@@ -37,8 +37,13 @@
   }
   function fire(col) { (subs[col] || []).forEach(function (s) { try { s.cb(snap(col, s)); } catch (e) { console.error(e); } }); }
   function clean(o) { return JSON.parse(JSON.stringify(o == null ? {} : o)); }
+  /* način inventure (kao na pravom serveru): dok traje, smije se pisati samo "stock" i "stockcnt" */
+  var invOn = false; try { invOn = localStorage.getItem("dpsTestInv") === "1"; } catch (e) {}
+  window.dpsInv = invOn;
+  window.dpsMode = function (on) { invOn = !!on; window.dpsInv = invOn; try { localStorage.setItem("dpsTestInv", on ? "1" : "0"); } catch (e) {} document.dispatchEvent(new Event("dps-inv")); return Promise.resolve({ ok: true, inv: invOn }); };
   function write(col, op, id, d, merge, cond) {
     return Promise.resolve().then(function () {
+      if (invOn && col !== "stock" && col !== "stockcnt") throw Object.assign(new Error("Inventura je u tijeku. Izdavanje, povrat i ostalo su privremeno zaključani."), { code: "inventura" });
       if (COLS.indexOf(col) < 0) throw Object.assign(new Error("col"), { code: "col" });
       data[col] = data[col] || {};
       if (op === "add") id = Date.now().toString(36) + Math.random().toString(16).slice(2, 10);
@@ -79,8 +84,9 @@
   function banner() {
     var b = document.createElement("div");
     b.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:200;background:#b86a00;color:#fff;font:600 12px system-ui;padding:3px 8px;text-align:center;padding-top:calc(3px + env(safe-area-inset-top,0px))";
-    b.innerHTML = 'TESTNA VERZIJA – lažni podaci, pravu aplikaciju ne dira · <a href="#" id="dpsReset" style="color:#fff">poništi testne podatke</a>';
+    b.innerHTML = 'TESTNA VERZIJA – lažni podaci, pravu aplikaciju ne dira · <a href="#" id="dpsReset" style="color:#fff">poništi testne podatke</a> · <a href="#" id="dpsDep" style="color:#fff">pogled zamjenika</a>';
     document.body.appendChild(b); document.body.style.paddingTop = "26px";
+    document.getElementById("dpsDep").onclick = function (e) { e.preventDefault(); var on = document.body.classList.toggle("simple"); try { localStorage.setItem("dpsSimple", on ? "1" : "0"); } catch (x) {} };
     document.getElementById("dpsReset").onclick = function (e) { e.preventDefault(); try { localStorage.removeItem(KEY); } catch (x) {} location.reload(); };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", banner); else banner();

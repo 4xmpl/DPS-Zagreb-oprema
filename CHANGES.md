@@ -39,3 +39,13 @@ Riješeno (ide u objavu): PIN limit se ne može zaobići paralelnim zahtjevima (
 Nije riješeno (kasnije): nepotpuni višekoračni upisi pri prekidu veze (potrebna jedna serverska radnja za izdavanje/povrat); preračun cijene koristi današnji cjenik (spremiti cijenu po komadu); PIN nije dulji (preporuka: 6 znamenki u Netlifyju, kod ništa ne traži); PDF knjižnice bez SRI zaštite (nema pristupa CDN-u za hash); brisanje u Povijesti je trajno.
 
 - Navigacija: dolje Izdavanje, Povrat, Naplata, Povijest + "Više ⋯" (otvara Inventar, Plan, Statistika, Financije). Napravljeno na razvoju, čeka Romanov dojam. U pojednostavljenom prikazu "Više" je skriven.
+
+## Sljedeći deploy (grana `razvoj`, još NIJE objavljeno)
+- PDF: ispravan prijelom stranica (A4, retci se ne režu, zaglavlje tablice se ponavlja, brojevi stranica).
+- Povijest: jedna kartica po posudbi, oznaka "šteta", detalji na dodir, "vraćeno n od m".
+- Naplata: odmah prikazuje neplaćeno + ukupno.
+- Servis po vrsti: regulator 100 zarona ili 730 dana; BCD nipl 365 dana.
+- Blagajna: "Ispravi" + trag "Ispravci i brisanja".
+- Način rada Inventura (zaključava aplikaciju, brže osvježavanje, tamna/jantarna tema, istječe nakon 12 h).
+- Lokacija komada ("gdje stoji").
+- Iskorištenost opreme + gumb "nije bilo komada".

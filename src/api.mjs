@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
 
-const COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt", "spare", "fin"];
+const COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt", "spare", "fin", "need"];
 const DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt", "spare", "fin"]; // zamjenik ne smije pisati
 const DEPUTY_NO_READ = ["fin"]; // zamjenik ne smije čitati financije
 const DEPUTY_LOG_LOCKED = ["free", "freeWhy", "saved", "dmgFee", "dmgCharged", "dmgTs"]; // samo vlasnik: besplatno i naplata štete
@@ -9,6 +9,9 @@ const DEPUTY_ITEM_LOCKED = ["buy", "bought"]; // nabavna cijena: samo vlasnik
 const DEPUTY_LOG_UPDATE = ["paid", "paidTs"]; // zamjenik na postojećem zapisu smije samo označiti plaćeno
 const DAYS = 120;
 const FAIL_WINDOW = 15 * 60e3, FAIL_IP = 8;
+const INV_TTL = 12 * 3600e3; // način inventure sam istekne ako se 12 sati ništa ne upiše (da klub ne ostane zaključan)
+const INV_COLS = ["stock", "stockcnt"]; // jedino što se smije pisati dok traje inventura
+async function invActive() { const v = Number(await meta().get("inv")); return !!v && Date.now() - v < INV_TTL; }
 
 function envp(k) {
   let v; try { v = Netlify.env.get(k); } catch (e) {}
@@ -103,7 +106,7 @@ export default async (req, context) => {
   try {
     if (b.op === "ver") {
       const { blobs } = await ver().list();
-      const v = {}; blobs.forEach(x => (v[x.key] = x.etag)); return json({ v, role });
+      const v = {}; blobs.forEach(x => (v[x.key] = x.etag)); return json({ v, role, inv: await invActive() });
     }
     if (b.op === "list") {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
@@ -113,8 +116,11 @@ export default async (req, context) => {
 
     if (["set", "update", "delete", "add"].includes(b.op)) {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
+      const inv = await invActive();
+      if (inv && !INV_COLS.includes(b.col)) return json({ error: "inventura", message: "Inventura je u tijeku. Izdavanje, povrat i ostalo su privremeno zaključani." }, 423);
+      const invOk = inv && b.col === "stockcnt"; // zamjenik smije samo označavati komade u inventuri
       // zamjenik: samo ono što mu sučelje nudi (izdavanje, povrat, označavanje plaćenog, plan)
-      if (role === "deputy" && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || (b.op === "set" && b.col !== "plans") || (b.op === "add" && b.col === "items")))
+      if (role === "deputy" && !invOk && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || (b.op === "set" && b.col !== "plans") || (b.op === "add" && b.col === "items")))
         return NOPE();
       let body = clean(b.data);
       if (role === "deputy" && b.col === "log") {
@@ -122,6 +128,7 @@ export default async (req, context) => {
         if (b.op === "update") body = Object.fromEntries(Object.entries(body).filter(([k]) => DEPUTY_LOG_UPDATE.includes(k)));
       }
       if (role === "deputy" && b.col === "items") DEPUTY_ITEM_LOCKED.forEach(k => delete body[k]);
+      if (inv && INV_COLS.includes(b.col)) await meta().set("inv", String(Date.now()));
       let id = b.id;
       if (b.op === "add") id = Date.now().toString(36) + randomBytes(4).toString("hex");
       if (!okId(id)) return json({ error: "id" }, 400);
@@ -156,7 +163,12 @@ export default async (req, context) => {
       return json({ export: out });
     }
     if (b.op === "info") return json({ backup: Number(await meta().get("lastExport")) || 0 });
+    if (b.op === "mode") { // vlasnik uključuje/isključuje način inventure
+      if (b.inv) await meta().set("inv", String(Date.now())); else await meta().delete("inv");
+      return json({ ok: true, inv: !!b.inv });
+    }
     if (b.op === "import") {
+      if (await invActive()) return json({ error: "inventura", message: "Inventura je u tijeku." }, 423);
       let n = 0;
       for (const c of COLS) {
         const col = (b.data || {})[c]; if (!col) continue;

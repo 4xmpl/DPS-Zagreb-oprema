@@ -869,7 +869,7 @@ var getStore = (input, options) => {
 
 // src/api.mjs
 import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
-var COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt", "spare", "fin"];
+var COLS = ["items", "lead", "log", "plans", "svclog", "config", "stock", "stockcnt", "spare", "fin", "need"];
 var DEPUTY_NO_WRITE = ["config", "svclog", "stock", "stockcnt", "spare", "fin"];
 var DEPUTY_NO_READ = ["fin"];
 var DEPUTY_LOG_LOCKED = ["free", "freeWhy", "saved", "dmgFee", "dmgCharged", "dmgTs"];
@@ -878,6 +878,12 @@ var DEPUTY_LOG_UPDATE = ["paid", "paidTs"];
 var DAYS = 120;
 var FAIL_WINDOW = 15 * 60 * 1e3;
 var FAIL_IP = 8;
+var INV_TTL = 12 * 36e5;
+var INV_COLS = ["stock", "stockcnt"];
+async function invActive() {
+  const v = Number(await meta().get("inv"));
+  return !!v && Date.now() - v < INV_TTL;
+}
 function envp(k) {
   let v;
   try {
@@ -984,7 +990,7 @@ var api_default = async (req, context) => {
       const { blobs } = await ver().list();
       const v = {};
       blobs.forEach((x) => v[x.key] = x.etag);
-      return json({ v, role });
+      return json({ v, role, inv: await invActive() });
     }
     if (b.op === "list") {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
@@ -993,7 +999,10 @@ var api_default = async (req, context) => {
     }
     if (["set", "update", "delete", "add"].includes(b.op)) {
       if (!okCol(b.col)) return json({ error: "col" }, 400);
-      if (role === "deputy" && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || b.op === "set" && b.col !== "plans" || b.op === "add" && b.col === "items"))
+      const inv = await invActive();
+      if (inv && !INV_COLS.includes(b.col)) return json({ error: "inventura", message: "Inventura je u tijeku. Izdavanje, povrat i ostalo su privremeno zaklju\u010Dani." }, 423);
+      const invOk = inv && b.col === "stockcnt";
+      if (role === "deputy" && !invOk && (DEPUTY_NO_WRITE.includes(b.col) || b.op === "delete" || b.op === "set" && b.col !== "plans" || b.op === "add" && b.col === "items"))
         return NOPE();
       let body = clean(b.data);
       if (role === "deputy" && b.col === "log") {
@@ -1001,6 +1010,7 @@ var api_default = async (req, context) => {
         if (b.op === "update") body = Object.fromEntries(Object.entries(body).filter(([k]) => DEPUTY_LOG_UPDATE.includes(k)));
       }
       if (role === "deputy" && b.col === "items") DEPUTY_ITEM_LOCKED.forEach((k) => delete body[k]);
+      if (inv && INV_COLS.includes(b.col)) await meta().set("inv", String(Date.now()));
       let id = b.id;
       if (b.op === "add") id = Date.now().toString(36) + randomBytes(4).toString("hex");
       if (!okId(id)) return json({ error: "id" }, 400);
@@ -1036,7 +1046,13 @@ var api_default = async (req, context) => {
       return json({ export: out });
     }
     if (b.op === "info") return json({ backup: Number(await meta().get("lastExport")) || 0 });
+    if (b.op === "mode") {
+      if (b.inv) await meta().set("inv", String(Date.now()));
+      else await meta().delete("inv");
+      return json({ ok: true, inv: !!b.inv });
+    }
     if (b.op === "import") {
+      if (await invActive()) return json({ error: "inventura", message: "Inventura je u tijeku." }, 423);
       let n = 0;
       for (const c of COLS) {
         const col = (b.data || {})[c];
