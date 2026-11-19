@@ -265,19 +265,22 @@ function slowScroll(y,ms){
 function sayB(t,field){
   $("msg").innerHTML="";
   if(!t||/^Spremljeno/.test(t))return;
-  toast(t,"",true);
+  toast(t,"",true);edge("var(--er)",2000);
   const el=$(field)||$("who");
   if(el){const r=el.getBoundingClientRect();slowScroll(Math.max(0,window.scrollY+r.top-90),700);
     const box=el.closest(".card")||el;box.animate([{boxShadow:"0 0 0 0 transparent"},{boxShadow:"0 0 0 3px var(--er)"},{boxShadow:"0 0 0 3px var(--er)"},{boxShadow:"0 0 0 0 transparent"}],{duration:2400,easing:"ease-out"});
     if(el.focus&&el.tagName==="INPUT"&&el.type!=="date")setTimeout(()=>{try{el.focus({preventScroll:true})}catch(e){}},750)}
 }
-let okT=0;
+function edge(color,ms){
+  let e=$("edge");if(!e){e=document.createElement("div");e.id="edge";e.setAttribute("aria-hidden","true");e.style.cssText="position:fixed;inset:0;z-index:300;pointer-events:none;opacity:0";document.body.appendChild(e)}
+  e.style.boxShadow="inset 0 0 0 4px "+color;
+  if(e._a)e._a.cancel();
+  if(e.animate)e._a=e.animate([{opacity:0,offset:0},{opacity:1,offset:.12},{opacity:1,offset:.75},{opacity:0,offset:1}],{duration:ms,easing:"ease-in-out"});
+}
 function saveOk(name,n,lead,price){
-  const b=$("save"),old="Spremi izdavanje";
-  b.textContent="✓ Posuđeno: "+name+" · "+n+(n===1?" komad":" komada")+(lead?" + olovo":"")+(price?" · naplatiti "+fm(price):"");
-  b.style.background="var(--ok)";b.style.color="#fff";
+  edge("var(--ok)",2000);
   try{if(navigator.vibrate)navigator.vibrate(40)}catch(e){}
-  slowScroll(0,2000);clearTimeout(okT);okT=setTimeout(()=>{b.textContent=old;b.style.background="";b.style.color=""},2400);
+  slowScroll(0,2000);
 }
 function say(t){$("msg").innerHTML=t?'<div class="msg">'+esc(t)+'</div>':""}
 
