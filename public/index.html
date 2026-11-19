@@ -141,7 +141,6 @@ body.invmode .card{box-shadow:none}
 <label class="row" style="margin-bottom:8px"><input type="checkbox" id="free" style="width:22px;height:22px;flex:none"> Ne plaća (npr. pomoć u buksi)</label>
 <input id="freewhy" placeholder="Razlog (obavezno, ide u PDF)" autocomplete="off"></div>
 <div class="card"><h2>Cijena</h2><div id="price" style="font-size:1.3rem;font-weight:700"></div></div>
-<div id="savemsg" class="msg hide" role="alert" style="background:color-mix(in srgb,var(--er) 16%,var(--card));color:var(--er);font-weight:600"></div>
 <button class="b" id="save" style="width:100%">Spremi izdavanje</button>
 </section>
 
@@ -232,12 +231,12 @@ const hrDate=iso=>iso?new Date(iso+"T00:00:00").toLocaleDateString("hr"):"";
 const noteLine=x=>(x.rem||x.note)?'<div class="mu" style="width:100%;padding-left:32px">'+(x.rem?"Napomena: "+esc(x.rem):"")+(x.rem&&x.note?" · ":"")+(x.note?'<span class="sv">'+esc(x.note)+'</span>':"")+'</div>':"";
 const frTxt=(x,fr)=>fr?(x.free?"0 € – besplatno"+(x.freeWhy?'<br><span style="color:#555">'+esc(x.freeWhy)+'</span>':""):"besplatno"):fm(x.price||0)+(x.paid?" ✓":"");
 let toastT=null;
-function toast(title,sub){
+function toast(title,sub,err){
   let t=document.getElementById("toast");
   if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.onclick=()=>{t.hidden=true};document.body.appendChild(t)}
-  t.innerHTML="<b>✓ "+esc(title)+"</b>"+(sub?"<span>"+esc(sub)+"</span>":"");t.hidden=false;
+  t.style.background=err?"var(--er)":"";t.style.color=err?"#fff":"";t.innerHTML="<b>"+(err?"⚠ ":"✓ ")+esc(title)+"</b>"+(sub?"<span>"+esc(sub)+"</span>":"");t.hidden=false;
   try{if(navigator.vibrate)navigator.vibrate(40)}catch(e){}
-  clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},5000);
+  clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},err?4500:3000);
 }
 let pdfLibs=null;
 function ensurePdf(){
@@ -254,9 +253,7 @@ function renderBk(){
   el.innerHTML=(t&&d<30)?"":'<div class="msg" style="background:color-mix(in srgb,var(--wa) 18%,var(--card))">Sigurnosna kopija: '+(t?"zadnja je napravljena prije "+d+" dana":"još nije napravljena")+'. Napravi je u postavkama (zupčanik) → Sigurnosna kopija.</div>';
 }
 document.addEventListener("dps-backup",renderBk);
-function sayB(t){const m=$("savemsg");if(!m)return say(t);if(!t){m.classList.add("hide");m.textContent="";return}
-  const ok=/^Spremljeno/.test(t);if(ok){m.classList.add("hide");return}
-  m.textContent=t;m.classList.remove("hide");$("msg").innerHTML="";try{m.scrollIntoView({block:"center",behavior:"smooth"})}catch(e){}}
+function sayB(t){if(t&&!/^Spremljeno/.test(t))toast(t,"",true);$("msg").innerHTML=""}
 function say(t){$("msg").innerHTML=t?'<div class="msg">'+esc(t)+'</div>':""}
 
 $("morebtn").onclick=e=>{e.stopPropagation();$("moreb").classList.toggle("hide")};
@@ -350,7 +347,7 @@ $("save").onclick=async()=>{
     if(lon(lead)){lt=leadTxt(lead);await db.collection("lead").add({holder:name,trip,kind,since:Date.now(),status:"out",days,due,batch,belt:lead.belt,w25:lead.w25,w2:lead.w2,w1:lead.w1,gloves:!!lead.gloves,pad:!!lead.pad,vre:!!lead.vre,kom:!!lead.kom,lam:!!lead.lam,bova:lead.bova||"",boca:!!lead.boca})}
     await db.collection("log").add(Object.assign({ts:batch,batch,name,action:"izdano",codes,lead:lt,trip,kind,days,due,price,leadObj:lt?JSON.parse(JSON.stringify(lead)):null},fo?{free:true,freeWhy:why,saved:full}:{}));
     sel=[];lead={belt:false,w25:0,w2:0,w1:0};beltManual=false;$("belt").value="0";document.querySelectorAll("[data-x]").forEach(c=>c.checked=false);$("bova").value="";$("who").value="";$("free").checked=false;$("freewhy").value="";renderPick();renderLead();renderSugg();
-    toast("Posuđeno: "+name+" · "+codes.length+" "+(codes.length===1?"komad":"komada")+(lt?" + olovo":""),"Vraća do "+new Date(due+"T00:00:00").toLocaleDateString("hr",{weekday:"long",day:"numeric",month:"numeric"})+" · "+(kind==="izlet"?(fo?"besplatno":"naplatiti "+fm(price)):kindTxt(kind)));
+    toast("Posuđeno: "+name+" · "+codes.length+" "+(codes.length===1?"komad":"komada")+(lt?" + olovo":""),kind==="izlet"&&!fo&&price?"naplatiti "+fm(price):"");window.scrollTo(0,0);
     sayB("Spremljeno za "+name+" ("+(kind==="izlet"?(fo?"besplatno – "+why:"naplatiti "+fm(price)):kindTxt(kind))+").");
   }catch(e){sayB("Greška pri spremanju ("+(e.code||"?")+"). Provjeri imaš li pravo uređivanja.")}
   busy=false;$("save").disabled=false;
