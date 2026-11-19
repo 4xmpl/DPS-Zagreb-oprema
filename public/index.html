@@ -256,7 +256,29 @@ function renderBk(){
   el.innerHTML=(t&&d<30)?"":'<div class="msg" style="background:color-mix(in srgb,var(--wa) 18%,var(--card))">Sigurnosna kopija: '+(t?"zadnja je napravljena prije "+d+" dana":"još nije napravljena")+'. Napravi je u postavkama (zupčanik) → Sigurnosna kopija.</div>';
 }
 document.addEventListener("dps-backup",renderBk);
-function sayB(t){if(t&&!/^Spremljeno/.test(t))toast(t,"",true);$("msg").innerHTML=""}
+let scrT=0;
+function slowScroll(y,ms){
+  cancelAnimationFrame(scrT);const y0=window.scrollY,d=y-y0;if(Math.abs(d)<2)return;const t0=performance.now();
+  const f=now=>{const k=Math.min(1,(now-t0)/ms),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;window.scrollTo(0,y0+d*e);if(k<1)scrT=requestAnimationFrame(f)};
+  scrT=requestAnimationFrame(f);
+}
+function sayB(t,field){
+  $("msg").innerHTML="";
+  if(!t||/^Spremljeno/.test(t))return;
+  toast(t,"",true);
+  const el=$(field)||$("who");
+  if(el){const r=el.getBoundingClientRect();slowScroll(Math.max(0,window.scrollY+r.top-90),700);
+    const box=el.closest(".card")||el;box.animate([{boxShadow:"0 0 0 0 transparent"},{boxShadow:"0 0 0 3px var(--er)"},{boxShadow:"0 0 0 3px var(--er)"},{boxShadow:"0 0 0 0 transparent"}],{duration:2400,easing:"ease-out"});
+    if(el.focus&&el.tagName==="INPUT"&&el.type!=="date")setTimeout(()=>{try{el.focus({preventScroll:true})}catch(e){}},750)}
+}
+let okT=0;
+function saveOk(name,n,lead,price){
+  const b=$("save"),old="Spremi izdavanje";
+  b.textContent="✓ Posuđeno: "+name+" · "+n+(n===1?" komad":" komada")+(lead?" + olovo":"")+(price?" · naplatiti "+fm(price):"");
+  b.style.background="var(--ok)";b.style.color="#fff";
+  try{if(navigator.vibrate)navigator.vibrate(40)}catch(e){}
+  slowScroll(0,2000);clearTimeout(okT);okT=setTimeout(()=>{b.textContent=old;b.style.background="";b.style.color=""},2400);
+}
 function say(t){$("msg").innerHTML=t?'<div class="msg">'+esc(t)+'</div>':""}
 
 $("morebtn").onclick=e=>{e.stopPropagation();$("moreb").classList.toggle("hide")};
@@ -326,11 +348,11 @@ $("pick").oninput=e=>{if(e.target.id==="need-size"&&needAsk)needAsk.size=e.targe
 
 $("save").onclick=async()=>{
   const name=$("who").value.trim(),trip=$("trip").value.trim(),kind=$("kind").value,days=Math.max(1,Math.min(60,parseInt($("days").value)||1)),batch=Date.now(),full=calcPrice(),fo=kind==="izlet"&&$("free").checked,why=$("freewhy").value.trim(),price=fo?0:full;
-  if(!name)return sayB("Upiši ime osobe.");
-  if(!trip)return sayB("Upiši izlet ili akciju.");
-  const due=$("due").value;if(!due)return sayB("Upiši do kada se oprema vraća.");if(due<todayIso())return sayB("Datum povratka ne može biti prije današnjeg dana.");
-  if(fo&&!why)return sayB("Upiši razlog zašto je besplatno.");
-  if(!sel.length&&!lon(lead))return sayB("Odaberi barem jedan komad opreme ili olovo.");
+  if(!name)return sayB("Upiši ime osobe.","who");
+  if(!trip)return sayB("Upiši izlet ili akciju.","trip");
+  const due=$("due").value;if(!due)return sayB("Upiši do kada se oprema vraća.","due");if(due<todayIso())return sayB("Datum povratka ne može biti prije današnjeg dana.","due");
+  if(fo&&!why)return sayB("Upiši razlog zašto je besplatno.","freewhy");
+  if(!sel.length&&!lon(lead))return sayB("Odaberi barem jedan komad opreme ili olovo.","pick");
   if(!db||busy)return;
   busy=true;$("save").disabled=true;sayB("");
   try{
@@ -350,7 +372,7 @@ $("save").onclick=async()=>{
     if(lon(lead)){lt=leadTxt(lead);await db.collection("lead").add({holder:name,trip,kind,since:Date.now(),status:"out",days,due,batch,belt:lead.belt,w25:lead.w25,w2:lead.w2,w1:lead.w1,gloves:!!lead.gloves,pad:!!lead.pad,vre:!!lead.vre,kom:!!lead.kom,lam:!!lead.lam,bova:lead.bova||"",boca:!!lead.boca})}
     await db.collection("log").add(Object.assign({ts:batch,batch,name,action:"izdano",codes,lead:lt,trip,kind,days,due,price,leadObj:lt?JSON.parse(JSON.stringify(lead)):null},fo?{free:true,freeWhy:why,saved:full}:{}));
     sel=[];lead={belt:false,w25:0,w2:0,w1:0};beltManual=false;$("belt").value="0";document.querySelectorAll("[data-x]").forEach(c=>c.checked=false);$("bova").value="";$("who").value="";$("free").checked=false;$("freewhy").value="";renderPick();renderLead();renderSugg();
-    toast("Posuđeno: "+name+" · "+codes.length+" "+(codes.length===1?"komad":"komada")+(lt?" + olovo":""),kind==="izlet"&&!fo&&price?"naplatiti "+fm(price):"");window.scrollTo(0,0);
+    saveOk(name,codes.length,!!lt,kind==="izlet"&&!fo&&price?price:0);
     sayB("Spremljeno za "+name+" ("+(kind==="izlet"?(fo?"besplatno – "+why:"naplatiti "+fm(price)):kindTxt(kind))+").");
   }catch(e){sayB("Greška pri spremanju ("+(e.code||"?")+"). Provjeri imaš li pravo uređivanja.")}
   busy=false;$("save").disabled=false;
