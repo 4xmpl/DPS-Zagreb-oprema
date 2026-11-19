@@ -21,7 +21,7 @@ h1{font-size:1.2rem;margin:0}
 #setp{margin-bottom:10px}
 .seg{display:flex;gap:6px}.seg button{flex:1;padding:9px 4px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;font:inherit;font-size:.85rem}.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 h2{font-size:1rem;font-weight:650;letter-spacing:.005em;margin:0 0 8px}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;width:min(92vw,520px);background:var(--ok);color:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 6px 24px rgba(0,0,0,.28);font-size:1rem;line-height:1.35;cursor:pointer}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;width:min(92vw,520px);background:var(--ok);color:#fff;border-radius:14px;padding:10px 16px;box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:1rem;line-height:1.35;cursor:pointer}
 #toast b{display:block;font-size:1.05rem}#toast span{display:block;font-size:.9rem;opacity:.95;margin-top:2px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #toast{color:#06210f}}
 :root[data-theme="dark"] #toast{color:#06210f}
@@ -236,7 +236,10 @@ function toast(title,sub,err){
   if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.onclick=()=>{t.hidden=true};document.body.appendChild(t)}
   t.style.background=err?"var(--er)":"";t.style.color=err?"#fff":"";t.innerHTML="<b>"+(err?"⚠ ":"✓ ")+esc(title)+"</b>"+(sub?"<span>"+esc(sub)+"</span>":"");t.hidden=false;
   try{if(navigator.vibrate)navigator.vibrate(40)}catch(e){}
-  clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},err?4500:3000);
+  clearTimeout(toastT);if(t._a)t._a.cancel();
+  const D=err?3000:1200,e1=Math.min(.3,300/D),e2=1-Math.min(.3,380/D);
+  if(t.animate){t._a=t.animate([{opacity:0,transform:"translateX(-50%) translateY(18px) scale(.97)",offset:0},{opacity:1,transform:"translateX(-50%) translateY(0) scale(1)",offset:e1},{opacity:1,transform:"translateX(-50%) translateY(0) scale(1)",offset:e2},{opacity:0,transform:"translateX(-50%) translateY(8px) scale(.98)",offset:1}],{duration:D,easing:"cubic-bezier(.22,1,.36,1)"});t._a.onfinish=()=>{t.hidden=true}}
+  else toastT=setTimeout(()=>{t.hidden=true},D);
 }
 let pdfLibs=null;
 function ensurePdf(){
