@@ -1558,8 +1558,24 @@ const dayTs=iso=>iso?new Date(iso+"T00:00:00").getTime():0;
 const FT={income:"Prihod",expense:"Izdatak",handover:"Predaja novca klubu"};
 const finHist=id=>{const f=fins.find(x=>x.id===id),h=f&&f.hist&&f.hist[f.hist.length-1];return h?'<div class="mu" style="width:100%;padding-left:2px">ispravljeno '+esc(new Date(h.ts).toLocaleDateString("hr"))+': bilo '+fm(Number(h.amount)||0)+(h.desc&&h.desc!==f.desc?" · "+esc(h.desc):"")+'</div>':""};
 const FC={oprema:"Nabava opreme",servis:"Servis i popravci",ostalo:"Ostali izdaci"};
-let finBal=0,finEditStart=false;
+let finBal=0,finEditStart=false,finImgs=[],finImgsReady=true,finImgsChg=false,finAttOpen="",finAttC={};
+function shrinkImg(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const M=1600,k=Math.min(1,M/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
+    const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+    let q=.78,d=c.toDataURL("image/jpeg",q);while(d.length>520000&&q>.4){q-=.1;d=c.toDataURL("image/jpeg",q)}ok(d)};
+  im.onerror=()=>{URL.revokeObjectURL(u);no(new Error("slika"))};im.src=u})}
+function viewImg(src){
+  const o=document.createElement("div");o.style.cssText="position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;padding:12px;cursor:zoom-out";
+  o.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:100%;border-radius:8px;background:#fff"><div style="position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:14px;color:#fff;font-size:1.6rem">✕</div>';
+  o.onclick=()=>o.remove();document.body.appendChild(o);
+}
+const imgThumbs=(a,pre)=>a.map((u,i)=>'<img data-fimgv="'+pre+i+'" src="'+u+'" alt="prilog" style="height:64px;width:auto;border-radius:8px;border:1px solid var(--bd);margin:4px 6px 0 0;cursor:zoom-in">').join("");
 const finStart=()=>fins.filter(f=>f.type==="start").sort((a,b)=>(b.ts||0)-(a.ts||0))[0]||null;
+const finOf=id=>fins.find(x=>x.id===id);
+function attRow(id){const f=finOf(id),n=f&&f.att;if(!n)return "";
+  return '<div style="width:100%"><button class="b g" data-fatt="'+esc(id)+'" style="padding:6px 10px;font-size:.85rem">📎 '+n+(n===1?" prilog":" priloga")+' '+(finAttOpen===id?"▾":"▸")+'</button>'+(finAttOpen===id?'<div>'+(finAttC[id]?imgThumbs(finAttC[id],"a"+id+":"):'<span class="mu">Učitavam…</span>')+'</div>':"")+'</div>'}
+function attRow2(f){const id=f.ref,n=f.att;
+  return '<div style="width:100%"><button class="b g" data-fatt="'+esc(id)+'" style="padding:6px 10px;font-size:.85rem">📎 '+n+(n===1?" prilog":" priloga")+' '+(finAttOpen===id?"▾":"▸")+'</button>'+(finAttOpen===id?'<div>'+(finAttC[id]?imgThumbs(finAttC[id],"a"+id+":"):'<span class="mu">Učitavam…</span>')+'</div>':"")+'</div>'}
 function finLedger(){
   const st=finStart(),cut=st?dayTs(st.date||todayIso()):0,R=[];
   fins.forEach(f=>{
@@ -1615,6 +1631,7 @@ function renderFin(){
     h+='<div class="card"><h2>'+(finEdit?"Ispravi unos":"Novi unos")+'</h2><select id="fin-t" style="margin-bottom:8px">'+Object.keys(FT).map(k=>'<option value="'+k+'"'+(t===k?" selected":"")+'>'+FT[k]+'</option>').join("")+'</select>'+
       '<div class="row" style="margin-bottom:8px"><input id="fin-a" type="text" data-dec="1" inputmode="decimal" placeholder="Iznos u €" value="'+esc(finForm.amount||"")+'"><input id="fin-d" type="date" value="'+esc(finForm.date||todayIso())+'"></div>'+
       '<input id="fin-x" placeholder="Opis (npr. jakna, uplata kluba, predano blagajniku)" value="'+esc(finForm.desc||"")+'" style="margin-bottom:8px">'+
+      (window.dpsAtt?'<div class="mu">Prilog (slika računa, poruke, potvrde…)</div><div style="margin:4px 0 8px">'+(finImgsReady?"":'<span class="mu">Učitavam priloge…</span>')+finImgs.map((u,i)=>'<span class="chip" style="padding:3px 6px"><img data-fimgv="n'+i+'" src="'+u+'" alt="prilog" style="height:44px;width:auto;border-radius:6px"><button data-fimgrm="'+i+'">✕</button></span>').join("")+(finImgs.length<6?'<button class="b g" data-fimgpick="1" style="padding:8px 12px;margin-top:4px">📎 Dodaj sliku</button><input type="file" id="fin-f" accept="image/*" multiple hidden>':'<div class="mu">Najviše 6 slika.</div>')+'</div>':"")+
       (t==="expense"?'<select id="fin-c" style="margin-bottom:8px">'+Object.keys(FC).map(k=>'<option value="'+k+'"'+((finForm.cat||"ostalo")===k?" selected":"")+'>'+FC[k]+'</option>').join("")+'</select>'+
         '<div class="mu">Poveži s komadom u inventaru (cijena i datum nabave upišu se na komad)</div><select id="fin-i" style="margin-bottom:8px"><option value="">— ne povezuj —</option>'+free.map(i=>'<option value="'+esc(i.id)+'"'+(finForm.item===i.id?" selected":"")+'>'+esc(i.id+" · "+(TN[i.type]||i.type)+(i.size?" · "+i.size:""))+'</option>').join("")+'</select>':"")+
       (finEdit?'<div class="row"><button class="b" data-fsave="1" style="flex:1">Spremi ispravak</button><button class="b g" data-fcancel="1">Odustani</button></div>':'<button class="b" data-fadd="1" style="width:100%">Dodaj</button>')+'</div>';
@@ -1630,8 +1647,8 @@ function renderFin(){
       if(S)h+='<div class="it" style="display:block"><b>Ukupno potrošeno na opremu '+y+'.</b><div class="mu">servis i popravci '+fm(S.servis)+' · nabava iz blagajne '+fm(S.oprema)+' · nabava koju je platio klub '+fm(ct)+'</div><div style="margin-top:4px;font-size:1.2rem"><b>'+fm(S.servis+S.oprema+ct)+'</b></div></div>';}
     h+='<button class="b" data-fpdf="1" style="width:100%;margin-top:10px">PDF za skupštinu</button><div class="mu" style="margin-top:6px">U PDF-u su novac i statistika po komadu (regulatori, kompenzatori, odijela), bez imena članova. Podaci se bilježe od uvođenja aplikacije, pa je prva godina nepotpuna.</div></div>';
     const rows=L.rows.slice().reverse().slice(0,60),tr=fins.filter(f=>f.type==="trag").sort((a,b)=>(b.ts||0)-(a.ts||0));
-    h+='<div class="card"><h2>Promet</h2>'+(rows.length?rows.map(r=>'<div class="it"><span class="n">'+esc(r.desc)+'<br><span class="mu">'+new Date(r.ts).toLocaleDateString("hr")+' · '+esc(r.cat)+'</span></span><span class="amt '+(r.amt>=0?"p":"m")+'">'+sgn2(r.amt)+'</span>'+(r.manual?(finAsk===r.id?'<button class="b r" data-fdel2="'+esc(r.id)+'">Da, obriši</button><button class="b g" data-fno="1">Ne</button>':'<button class="b g" data-fedit="'+esc(r.id)+'" style="padding:8px 11px;font-size:.85rem">Ispravi</button><button class="b r" data-fdel="'+esc(r.id)+'">obriši</button>'):"")+(r.manual?finHist(r.id):"")+'</div>').join("")+(L.rows.length>60?'<div class="mu" style="margin-top:6px">Prikazano zadnjih 60 stavki.</div>':""):'<div class="mu">Još nema prometa nakon početnog stanja.</div>')+'</div>';
-    if(tr.length)h+='<div class="card"><button class="hd" data-ftrag="1"><b style="flex:1">Ispravci i brisanja <span class="mu" style="font-weight:400">('+tr.length+')</span></b><span>'+(finTrag?"▾":"▸")+'</span></button>'+(finTrag?tr.map(f=>'<div class="it"><span class="n">'+esc(f.desc||"")+'<br><span class="mu">'+esc(hrDate(f.date))+(f.amount?" · bilo "+fm(Number(f.amount)||0):"")+'</span></span></div>').join(""):"")+'</div>';
+    h+='<div class="card"><h2>Promet</h2>'+(rows.length?rows.map(r=>'<div class="it"><span class="n">'+esc(r.desc)+'<br><span class="mu">'+new Date(r.ts).toLocaleDateString("hr")+' · '+esc(r.cat)+'</span></span><span class="amt '+(r.amt>=0?"p":"m")+'">'+sgn2(r.amt)+'</span>'+(r.manual?(finAsk===r.id?'<button class="b r" data-fdel2="'+esc(r.id)+'">Da, obriši</button><button class="b g" data-fno="1">Ne</button>':'<button class="b g" data-fedit="'+esc(r.id)+'" style="padding:8px 11px;font-size:.85rem">Ispravi</button><button class="b r" data-fdel="'+esc(r.id)+'">obriši</button>'):"")+(r.manual?finHist(r.id):"")+attRow(r.id)+'</div>').join("")+(L.rows.length>60?'<div class="mu" style="margin-top:6px">Prikazano zadnjih 60 stavki.</div>':""):'<div class="mu">Još nema prometa nakon početnog stanja.</div>')+'</div>';
+    if(tr.length)h+='<div class="card"><button class="hd" data-ftrag="1"><b style="flex:1">Ispravci i brisanja <span class="mu" style="font-weight:400">('+tr.length+')</span></b><span>'+(finTrag?"▾":"▸")+'</span></button>'+(finTrag?tr.map(f=>'<div class="it"><span class="n">'+esc(f.desc||"")+'<br><span class="mu">'+esc(hrDate(f.date))+(f.amount?" · bilo "+fm(Number(f.amount)||0):"")+'</span></span>'+(f.att&&f.ref?attRow2(f):"")+'</div>').join(""):"")+'</div>';
   }
   $("fin").innerHTML=h;
   const ca=$("fin-ca");if(ca)ca.oninput=()=>{const v=ca.value===""?null:Number(ca.value);$("fin-cd").textContent=v==null?"":"Razlika u odnosu na aplikaciju: "+sgn2(v-finBal)};
@@ -1640,8 +1657,11 @@ $("fin").oninput=e=>{
   const id=e.target.id;
   if(id==="fin-a")finForm.amount=e.target.value;else if(id==="fin-d")finForm.date=e.target.value;else if(id==="fin-x")finForm.desc=e.target.value;
 };
-$("fin").onchange=e=>{
+$("fin").onchange=async e=>{
   const id=e.target.id;
+  if(id==="fin-f"){const fl=[...e.target.files];e.target.value="";e.target.blur();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+    try{for(const f of fl){if(finImgs.length>=6)break;finImgs.push(await shrinkImg(f));finImgsChg=true}}catch(er){say("Slika se nije mogla učitati.")}
+    renderFin();return}
   if(id==="fin-t"){finForm.type=e.target.value;renderFin()}
   else if(id==="fin-c")finForm.cat=e.target.value;
   else if(id==="fin-i")finForm.item=e.target.value;
@@ -1671,29 +1691,40 @@ $("fin").onclick=async e=>{
       let desc=$("fin-x").value.trim(),cat=ty==="expense"?(($("fin-c")||{}).value||"ostalo"):"",item=ty==="expense"?(($("fin-i")||{}).value||""):"";
       if(item){const it=items.find(i=>i.id===item);cat="oprema";if(!desc)desc="Nabava: "+(it?TN[it.type]+" ":"")+item;await db.collection("items").doc(item).update({buy:am,bought:d})}
       if(!desc)desc=FT[ty];
-      await db.collection("fin").add(Object.assign({type:ty,amount:am,date:d,desc,ts:Date.now()},cat?{cat}:{},item?{item}:{}));
-      finForm={type:ty};say("Unos spremljen: "+FT[ty].toLowerCase()+" "+fm(am)+".");return;
+      const nid=Date.now().toString(36)+Math.random().toString(16).slice(2,8);
+      if(finImgs.length)await window.dpsAtt.set(nid,finImgs);
+      await db.collection("fin").doc(nid).set(Object.assign({type:ty,amount:am,date:d,desc,ts:Date.now()},cat?{cat}:{},item?{item}:{},finImgs.length?{att:finImgs.length}:{}));
+      finImgs=[];finImgsChg=false;finForm={type:ty};say("Unos spremljen: "+FT[ty].toLowerCase()+" "+fm(am)+".");return;
     }
     if(t.closest("[data-ftrag]")){finTrag=!finTrag;renderFin();return}
-    const fe=t.closest("[data-fedit]");if(fe){const f=fins.find(x=>x.id===fe.dataset.fedit);if(f){finEdit=f.id;finForm={type:f.type,amount:String(f.amount||"").replace(".",","),date:f.date,desc:f.desc||"",cat:f.cat||"ostalo",item:f.item||""};renderFin();window.scrollTo(0,0)}return}
-    if(t.closest("[data-fcancel]")){finEdit=null;finForm={type:"expense"};renderFin();return}
+    if(t.closest("[data-fimgpick]")){const fi=$("fin-f");if(fi)fi.click();return}
+    {const rm=t.closest("[data-fimgrm]");if(rm){finImgs.splice(Number(rm.dataset.fimgrm),1);finImgsChg=true;renderFin();return}}
+    {const iv=t.closest("[data-fimgv]");if(iv){viewImg(iv.src);return}}
+    {const fa=t.closest("[data-fatt]");if(fa){const id=fa.dataset.fatt;if(finAttOpen===id){finAttOpen="";renderFin();return}
+      finAttOpen=id;renderFin();if(!finAttC[id]&&window.dpsAtt){try{finAttC[id]=await window.dpsAtt.get(id)}catch(er){finAttC[id]=[];say("Prilog se nije mogao učitati.")}renderFin()}return}}
+    const fe=t.closest("[data-fedit]");if(fe){const f=fins.find(x=>x.id===fe.dataset.fedit);if(f){finEdit=f.id;finForm={type:f.type,amount:String(f.amount||"").replace(".",","),date:f.date,desc:f.desc||"",cat:f.cat||"ostalo",item:f.item||""};finImgs=[];finImgsChg=false;finImgsReady=!f.att||!window.dpsAtt;
+    if(f.att&&window.dpsAtt)window.dpsAtt.get(f.id).then(a=>{if(finEdit===f.id){finImgs=a;finImgsReady=true;renderFin()}}).catch(()=>{finImgsReady=false;say("Prilozi se nisu mogli učitati.")});
+    renderFin();window.scrollTo(0,0)}return}
+    if(t.closest("[data-fcancel]")){finEdit=null;finForm={type:"expense"};finImgs=[];finImgsReady=true;finImgsChg=false;renderFin();return}
     if(t.closest("[data-fsave]")){
       const f=fins.find(x=>x.id===finEdit);if(!f){finEdit=null;return renderFin()}
       const ty=$("fin-t").value,am=Number(String($("fin-a").value).replace(",",".")),d=$("fin-d").value||todayIso();
       if(!(am>0))return say("Upiši iznos veći od nule.");
+      if(!finImgsReady)return say("Pričekaj da se prilozi učitaju.");
       let desc=$("fin-x").value.trim(),cat=ty==="expense"?(($("fin-c")||{}).value||"ostalo"):"",item=ty==="expense"?(($("fin-i")||{}).value||""):"";
       if(item&&!desc){const it=items.find(i=>i.id===item);desc="Nabava: "+(it?TN[it.type]+" ":"")+item}
       if(item)cat="oprema";if(!desc)desc=FT[ty];
       if(f.item&&f.item!==item)await db.collection("items").doc(f.item).update({buy:0,bought:""}).catch(()=>{});
       if(item)await db.collection("items").doc(item).update({buy:am,bought:d});
       const hist=(f.hist||[]).concat([{ts:Date.now(),type:f.type,amount:f.amount,date:f.date,desc:f.desc||""}]);
-      await db.collection("fin").doc(f.id).set(Object.assign({type:ty,amount:am,date:d,desc,ts:f.ts||Date.now(),hist},cat?{cat}:{},item?{item}:{}));
-      finEdit=null;finForm={type:"expense"};say("Unos je ispravljen. Prijašnja vrijednost ostaje zabilježena.");return;
+      if(finImgsChg&&window.dpsAtt){await window.dpsAtt.set(f.id,finImgs);delete finAttC[f.id]}
+      await db.collection("fin").doc(f.id).set(Object.assign({type:ty,amount:am,date:d,desc,ts:f.ts||Date.now(),hist},cat?{cat}:{},item?{item}:{},finImgs.length?{att:finImgs.length}:{}));
+      finEdit=null;finImgs=[];finImgsChg=false;finForm={type:"expense"};say("Unos je ispravljen. Prijašnja vrijednost ostaje zabilježena.");return;
     }
     const dl=t.closest("[data-fdel]");if(dl){finAsk=dl.dataset.fdel;renderFin();return}
     if(t.closest("[data-fno]")){finAsk=null;renderFin();return}
     const d2=t.closest("[data-fdel2]");if(d2){const f=fins.find(x=>x.id===d2.dataset.fdel2);
-      if(f)await db.collection("fin").add({type:"trag",date:todayIso(),amount:f.amount||0,desc:"Obrisano: "+(f.desc||FT[f.type]||"")+" ("+(FT[f.type]||f.type)+(f.date?", "+hrDate(f.date):"")+")",ts:Date.now()});
+      if(f)await db.collection("fin").add(Object.assign({type:"trag",date:todayIso(),amount:f.amount||0,desc:"Obrisano: "+(f.desc||FT[f.type]||"")+" ("+(FT[f.type]||f.type)+(f.date?", "+hrDate(f.date):"")+")",ts:Date.now()},f.att?{ref:f.id,att:f.att}:{}));
       await db.collection("fin").doc(d2.dataset.fdel2).delete();finAsk=null;say("Unos obrisan. Trag ostaje u „Ispravci i brisanja“.");return}
     if(t.closest("[data-fpdf]")){try{await makeAssemblyPdf(Number(finYear))}catch(err){if(!err||err.code!=="declined")say("PDF nije uspio ("+((err&&err.code)||"greška")+").")}return}
   }catch(err){say("Greška ("+((err&&err.code)||"?")+").")}

@@ -130,6 +130,7 @@
       return Promise.resolve();
     }
   };
+  window.dpsAtt = { get: function (id) { return api({ op: "attget", id: id }).then(function (j) { return j.imgs || []; }); }, set: function (id, imgs) { return api({ op: "attset", id: id, imgs: imgs }); } };
   var user = { isOwner: function () { return Promise.resolve(role === "owner"); } };
 
   window.claude = {

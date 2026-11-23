@@ -1036,12 +1036,28 @@ var api_default = async (req, context) => {
       return json({ ok: true, id });
     }
     if (role !== "owner") return json({ error: "Samo za vlasnika." }, 403);
+    if (b.op === "attget") {
+      if (!okId(b.id)) return json({ error: "id" }, 400);
+      const a = await s.get("att/" + b.id, { type: "json" });
+      return json({ imgs: (a && a.imgs) || [] });
+    }
+    if (b.op === "attset") {
+      if (await invActive()) return json({ error: "inventura", message: "Inventura je u tijeku." }, 423);
+      if (!okId(b.id)) return json({ error: "id" }, 400);
+      const imgs = Array.isArray(b.imgs) ? b.imgs : [];
+      if (imgs.length > 6 || imgs.some(x => typeof x !== "string" || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(x) || x.length > 700000))
+        return json({ error: "prilog", message: "Prilog nije ispravan (najviše 6 slika)." }, 400);
+      if (imgs.length) await s.setJSON("att/" + b.id, { imgs, ts: Date.now() }); else await s.delete("att/" + b.id);
+      return json({ ok: true, n: imgs.length });
+    }
     if (b.op === "export") {
       const out = {};
       for (const c of COLS) {
         out[c] = {};
         (await listCol(c)).forEach((d) => out[c][d.id] = d.data);
       }
+      out._att = {};
+      { const { blobs } = await s.list({ prefix: "att/" }); for (const x of blobs) { const d = await s.get(x.key, { type: "json" }); if (d) out._att[x.key.slice(4)] = d; } }
       await meta().set("lastExport", String(Date.now()));
       return json({ export: out });
     }
@@ -1064,6 +1080,7 @@ var api_default = async (req, context) => {
         }
         await bump(c);
       }
+      for (const [id, d] of Object.entries((b.data || {})._att || {})) { if (!okId(id) || !d || !Array.isArray(d.imgs)) continue; await s.setJSON("att/" + id, { imgs: d.imgs.filter(x => typeof x === "string").slice(0, 6), ts: d.ts || Date.now() }); n++; }
       return json({ ok: true, n });
     }
     return json({ error: "op" }, 400);

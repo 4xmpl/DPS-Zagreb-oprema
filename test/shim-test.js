@@ -77,6 +77,16 @@
     var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = o.filename; document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
   } };
+  window.dpsAtt = {
+    get: function (id) { return Promise.resolve().then(function () { try { var o = JSON.parse(localStorage.getItem("dpsTestAtt") || "{}"); return o[id] || []; } catch (e) { return []; } }); },
+    set: function (id, imgs) { return Promise.resolve().then(function () {
+      if (invOn) throw Object.assign(new Error("Inventura je u tijeku."), { code: "inventura" });
+      var o = {}; try { o = JSON.parse(localStorage.getItem("dpsTestAtt") || "{}"); } catch (e) {}
+      if (imgs && imgs.length) o[id] = imgs; else delete o[id];
+      try { localStorage.setItem("dpsTestAtt", JSON.stringify(o)); } catch (e) { throw Object.assign(new Error("Nema mjesta u pregledniku za testni prilog."), { code: "mjesto" }); }
+      return { ok: true };
+    }); }
+  };
   var user = { isOwner: function () { return Promise.resolve(true); } };
   window.dpsApi = ({ use: function (n) { return Promise.resolve(n === "db" ? db : n === "user" ? user : n === "downloads" ? dl : null); } });
 
