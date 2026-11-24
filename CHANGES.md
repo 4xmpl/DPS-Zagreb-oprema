@@ -52,3 +52,4 @@ Nije riješeno (kasnije): nepotpuni višekoračni upisi pri prekidu veze (potreb
 - Inventar kao pločice (Oprema, Rezervni dijelovi, Inventura, Servis, Cjenik, Kopija); gornja traka se mijenja po kartici (Naplata, Financije, Statistika, Inventar).
 - Blagajna: prilog slika uz unos (račun, poruka, potvrda); sprema se u Netlify Blobs (att/), samo vlasnik; ulazi u JSON kopiju (_att).
 - Ispravak: prazna narančasta traka inventure više nije vidljiva izvan inventure.
+- Povrat: kvačica "Neuredno vraćeno" otvara panel razloga (nije isprano, mokro, nije složeno, prljavo, fali dio, drugo) + napomena; oznaka "neuredno" u Povijesti (samo vlasnik), brojač uz osobu, podsjetnik pri sljedećem izdavanju; oznake starije od 12 mjeseci se ne prikazuju.
